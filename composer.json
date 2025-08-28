@@ -1,0 +1,24 @@
+{
+    "name": "phputil/sql",
+    "description": "Simply the best SQL query builder for PHP",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Thiago Delgado Pinto",
+            "email": "thiago_dp@yahoo.com.br"
+        }
+    ],
+    "autoload": {
+        "psr-4": {},
+        "files": [ "src/index.php" ]
+    },
+    "require-dev": {
+        "kahlan/kahlan": "^6.0",
+        "phpstan/phpstan": "^2.1"
+    },
+    "scripts": {
+        "check": "phpstan",
+        "test": "kahlan --reporter=tree"
+    }
+}

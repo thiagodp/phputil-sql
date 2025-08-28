@@ -1,0 +1,23 @@
+// OK: alias para colunas (AS), ex: lev AS level
+// OK: alias para valores (AS), ex: 1 AS level
+// OK: IS NULL
+// OK: IS NOT NULL
+// OK: aggregation functions with distinct, ex. COUNT(DISTINCT order_id)
+// OK: names with ` (optional?)
+// OK: limit and offset that works according to the database type
+// OK: common functions, like COALESCE
+// OK: string functions
+// OK: date functions
+
+// DB::$type = DBType::MYSQL;
+// DB::$type = DBType::POSTGRESQL;
+// DB::$type = DBType::SQLSERVER;
+
+🆗- remove function alias (for not to be used in from())
+
+🆗- add apostrophe automatically to string values
+🆗- detect DateTime values and represent them as a database strings
+🆗- detect bool values and represent them as TRUE and FALSE
+🆗- detect null values and represent them as NULL
+
+// TODO: make it possible to create a select for a certain database -> via DB::mysql()->select(...) OR DB::with( DBType::MYSQL )->select(...)
