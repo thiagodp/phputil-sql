@@ -3,64 +3,94 @@ namespace phputil\sql;
 
 describe( 'conditions', function() {
 
-    it( 'converts equalTo', function() {
+    it( 'converts equalTo()', function() {
         $r = (string) col( 'x' )->equalTo( 1 );
         expect( $r )->toBe( 'x = 1' );
     } );
 
-    it( 'converts notEqualTo', function() {
+    it( 'converts notEqualTo()', function() {
         $r = (string) col( 'x' )->notEqualTo( 1 );
         expect( $r )->toBe( 'x <> 1' );
     } );
 
-    it( 'converts differentFrom', function() {
+    it( 'converts differentFrom()', function() {
         $r = (string) col( 'x' )->differentFrom( 1 );
         expect( $r )->toBe( 'x <> 1' );
     } );
 
-    it( 'converts greaterThan', function() {
+    it( 'converts greaterThan()', function() {
         $r = (string) col( 'x' )->greaterThan( 1 );
         expect( $r )->toBe( 'x > 1' );
     } );
 
-    it( 'converts greaterThanOrEqualTo', function() {
+    it( 'converts greaterThanOrEqualTo()', function() {
         $r = (string) col( 'x' )->greaterThanOrEqualTo( 1 );
         expect( $r )->toBe( 'x >= 1' );
     } );
 
-    it( 'converts lessThan', function() {
+    it( 'converts lessThan()', function() {
         $r = (string) col( 'x' )->lessThan( 1 );
         expect( $r )->toBe( 'x < 1' );
     } );
 
-    it( 'converts lessThanOrEqualTo', function() {
+    it( 'converts lessThanOrEqualTo()', function() {
         $r = (string) col( 'x' )->lessThanOrEqualTo( 1 );
         expect( $r )->toBe( 'x <= 1' );
     } );
 
-    it( 'converts like', function() {
+    it( 'converts like()', function() {
         $r = (string) col( 'x' )->like( 'A' );
         expect( $r )->toBe( "x LIKE 'A'" );
     } );
 
-    it( 'converts startWith', function() {
+    it( 'converts startWith()', function() {
         $r = (string) col( 'x' )->startWith( 'A' );
         expect( $r )->toBe( "x LIKE 'A%'" );
     } );
 
-    it( 'converts endWith', function() {
+    it( 'converts endWith()', function() {
         $r = (string) col( 'x' )->endWith( 'A' );
         expect( $r )->toBe( "x LIKE '%A'" );
     } );
 
-    it( 'converts contain', function() {
+    it( 'converts contain()', function() {
         $r = (string) col( 'x' )->contain( 'A' );
         expect( $r )->toBe( "x LIKE '%A%'" );
     } );
 
-    it( 'converts between', function() {
+    it( 'converts between()', function() {
         $r = (string) col( 'x' )->between( 'A', 'Z' );
         expect( $r )->toBe( "x BETWEEN 'A' AND 'Z'" );
+    } );
+
+    it( 'converts in() with an array', function() {
+        $r = (string) col( 'x' )->in( [ 'A', 'B' ] );
+        expect( $r )->toBe( "x IN ('A', 'B')" );
+    } );
+
+    it( 'converts in() with a sub select', function() {
+        $r = (string) col( 'x' )->in( select( 'y' )->from( 'foo' ) );
+        expect( $r )->toBe( "x IN (SELECT y FROM foo)" );
+    } );
+
+    it( 'converts isNull()', function() {
+        $r = (string) col( 'x' )->isNull();
+        expect( $r )->toBe( "x IS NULL" );
+    } );
+
+    it( 'converts isNotNull()', function() {
+        $r = (string) col( 'x' )->isNotNull();
+        expect( $r )->toBe( "x IS NOT NULL" );
+    } );
+
+    it( 'converts isTrue()', function() {
+        $r = (string) col( 'x' )->isTrue();
+        expect( $r )->toBe( "x IS TRUE" );
+    } );
+
+    it( 'converts isFalse()', function() {
+        $r = (string) col( 'x' )->isFalse();
+        expect( $r )->toBe( "x IS FALSE" );
     } );
 
 

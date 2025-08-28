@@ -856,6 +856,14 @@ function __booleanString( bool $value, bool $asInteger = false ): string {
     return $value ? 'TRUE' : 'FALSE';
 }
 
+function __valueOrName( $str ): string {
+    if ( is_string( $str ) ) {
+        $str = __addQuotesIfNeeded( $str );
+    } else if ( $str instanceof Value ) {
+        $str = __makeSureThatHasApostrophe( $str );
+    }
+    return $str;
+}
 
 // ----------------------------------------------------------------------------
 // AGGREGATE FUNCTIONS
@@ -1043,15 +1051,18 @@ function dateSub( string $dateOrColumn, int|string $value, string $unit = 'day' 
 // STRING FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function upper( string $str ): Value {
+function upper( $str ): Value {
+    $str = __valueOrName( $str );
     return __makeFunction( "UPPER($str)" );
 }
 
-function lower( string $str ): Value {
+function lower( $str ): Value {
+    $str = __valueOrName( $str );
     return __makeFunction( "LOWER($str)" );
 }
 
-function substring( string $str, int|string $pos = 1, int $len = 0 ): Value {
+function substring( $str, int|string $pos = 1, int $len = 0 ): Value {
+    $str = __valueOrName( $str );
     $f = match ( DB::$type ) {
         DBType::POSTGRESQL => ( $len > 0 ? "SUBSTRING($str FROM $pos FOR $len)" : "SUBSTRING($str FROM $pos)" ),
         DBType::SQLITE, DBType::ORACLE => ( $len > 0 ? "SUBSTR($str, $pos, $len)" : "SUBSTR($str, $pos)" ),
@@ -1062,7 +1073,11 @@ function substring( string $str, int|string $pos = 1, int $len = 0 ): Value {
 }
 
 
-function concat( string $str1, string $str2, string ...$other ): string|Value {
+function concat( $str1, $str2, ...$other ): string|Value {
+    $str1 = __valueOrName( $str1 );
+    $str2 = __valueOrName( $str2 );
+    $other = array_map( fn( $s ) => __valueOrName( $s ), $other );
+
     if ( DB::$type === DBType::ORACLE ) {
         return implode( ' || ', [ $str1, $str2, ...$other ] );
     }
@@ -1072,7 +1087,8 @@ function concat( string $str1, string $str2, string ...$other ): string|Value {
 }
 
 
-function length( string $str ): Value {
+function length( $str ): Value {
+    $str = __valueOrName( $str );
     $f = match ( DB::$type ) {
         DBType::SQLSERVER => "LEN($str)",
         DBType::MYSQL, DBType::POSTGRESQL => "CHAR_LENGTH($str)",
@@ -1082,7 +1098,8 @@ function length( string $str ): Value {
 }
 
 
-function bytes( string $str ): Value {
+function bytes( $str ): Value {
+    $str = __valueOrName( $str );
     $f = match ( DB::$type ) {
         DBType::SQLSERVER => "LEN($str)",
         default => "LENGTH($str)"
@@ -1094,7 +1111,9 @@ function bytes( string $str ): Value {
 // NULL HANDLING FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function ifNull( string $str1, string $str2 ): Value {
+function ifNull( $str1, $str2 ): Value {
+    $str1 = __valueOrName( $str1 );
+    $str2 = __valueOrName( $str2 );
     $f = match ( DB::$type ) {
         DBType::POSTGRESQL, DBType::MYSQL => "COALESCE($str1, $str2)",
         DBType::ORACLE => "NVL($str1,$str2)",
@@ -1107,43 +1126,53 @@ function ifNull( string $str1, string $str2 ): Value {
 // MATHEMATICAL FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function abs(int|float|string $value): Value {
-    return __makeFunction( "ABS($value)" );
+function abs( $valueOrColumn ): Value {
+    $valueOrColumn = __valueOrName( $valueOrColumn );
+    return __makeFunction( "ABS($valueOrColumn)" );
 }
 
-function round(int|float|string $value, int $decimals): Value {
-    return __makeFunction( "ROUND($value, $decimals)" );
+function round( $valueOrColumn, int $decimals ): Value {
+    $valueOrColumn = __valueOrName( $valueOrColumn );
+    return __makeFunction( "ROUND($valueOrColumn, $decimals)" );
 }
 
-function ceil(int|float|string $value): Value {
+function ceil( $valueOrColumn ): Value {
+    $valueOrColumn = __valueOrName( $valueOrColumn );
     $f = match( DB::$type ) {
-        DBType::SQLSERVER => "CEILING($value)",
-        default => "CEIL($value)"
+        DBType::SQLSERVER => "CEILING($valueOrColumn)",
+        default => "CEIL($valueOrColumn)"
     };
     return __makeFunction( $f );
 }
 
-function floor(int|float|string $value): Value {
-    return __makeFunction( "FLOOR($value)" );
+function floor( $valueOrColumn ): Value {
+    $valueOrColumn = __valueOrName( $valueOrColumn );
+    return __makeFunction( "FLOOR($valueOrColumn)" );
 }
 
-function power( int|float|string $x, int|float|string $y ): Value {
-    return __makeFunction( "POWER($x, $y)" );
+function power( $base, $exponent ): Value {
+    $base = __valueOrName( $base );
+    $exponent = __valueOrName( $exponent );
+    return __makeFunction( "POWER($base, $exponent)" );
 }
 
 
-function sqrt( int|float|string $value ): Value {
-    return __makeFunction( "SQRT($value)" );
+function sqrt( $valueOrColumn ): Value {
+    $valueOrColumn = __valueOrName( $valueOrColumn );
+    return __makeFunction( "SQRT($valueOrColumn)" );
 }
 
-function sin( int|float|string $value ): Value {
-    return __makeFunction( "SIN($value)" );
+function sin( $valueOrColumn ): Value {
+    $valueOrColumn = __valueOrName( $valueOrColumn );
+    return __makeFunction( "SIN($valueOrColumn)" );
 }
 
-function cos( int|float|string $value ): Value {
-    return __makeFunction( "COS($value)" );
+function cos( $valueOrColumn ): Value {
+    $valueOrColumn = __valueOrName( $valueOrColumn );
+    return __makeFunction( "COS($valueOrColumn)" );
 }
 
-function tan( int|float|string $value ): Value {
-    return __makeFunction( "TAN($value)" );
+function tan( $valueOrColumn ): Value {
+    $valueOrColumn = __valueOrName( $valueOrColumn );
+    return __makeFunction( "TAN($valueOrColumn)" );
 }

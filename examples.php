@@ -110,3 +110,8 @@ echo "\n", select( 'one', 'two' )->from( 'three' )->where(
 
 echo "\n", select( 'one', 'two' )->from( 'three' )->where( col( 'one' )->equalTo( col('one') ) )->end();
 echo "\n", select( 'one', 'two' )->from( 'three' )->where( val( $now )->equalTo( col('one') ) )->end();
+
+DB::useOracle();
+
+echo "\n", select( lower('foo') )->from( 'example' )->end();
+echo "\n", select( lower(val('Hello')) )->from( 'example' )->end();

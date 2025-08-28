@@ -82,8 +82,7 @@ Contribute to include another database or feature by opening an [Issue](https://
     - [x] Automatic value conversions:
         - [x] Add apostrophes to string values.
         - [x] DateTime values as database strings.
-        - [x] Boolean values.
-        - [x] Null values.
+        - [x] Boolean and NULL values.
         - [x] Array values inside `in` expressions.
 
 - [ ] Insert statement
@@ -98,8 +97,8 @@ Contribute to include another database or feature by opening an [Issue](https://
 ### Basic functions
 
 ```php
-// Make sure to declare their usage. Example:
-use function phputil\sql\{select, col, quote, val};
+// 👉 Make sure to declare their usage. Example:
+use function phputil\sql\{select, col, val, wrap};
 ```
 
 #### `select`
@@ -165,8 +164,7 @@ $sql = select( 'id' )->from( 'sale' )->where( col( 'customer_id' )->in(
  - `isFalse()` for `IS FALSE`
 
 ℹ️ **Notes**:
-- Methods `like`, `startWith`, `endWith`, and `contain` already include quotes in the received value.
-- Methods `startWith`, `endWith`, and `contain` produce a `LIKE` expression with the proper `%` value, in all databases.
+- Methods `startWith`, `endWith`, and `contain` produce a `LIKE` expression that adds `%` to the receive value.
 - In Oracle databases, the methods `isTrue()` and `isFalse()` are supported from Oracle version `23ai`. In older versions, you can use `equalTo(1)` and `equalTo(0)` respectively, for the same results.
 
 
@@ -201,20 +199,6 @@ $sql = select( 'id' )->from( 'sale' )->where(
 )->end();
 // SELECT `id` FROM `sale` WHERE `total` >= 100 AND (`customer_id` = 1234 OR `customer_id` = 4567)
 ```
-
-#### `quote`
-
-`quote` adds apostrophes to a value, like a date or a string. Examples:
-```php
-$sql = select( 'name' )->from( 'customer' )->where( col( 'email' )->equalTo( quote( 'bob@acme.com' ) ) ) )->end();
-// SELECT `name` FROM `customer` WHERE `email` = 'bob@acme.com'
-
-$sql = select( 'name' )->from( 'customer' )->where( col( 'birthdate' )->greaterThanOrEqualTo( quote( '2000-01-01' ) ) )->end();
-// SELECT `name` FROM `customer` WHERE `birthdate` >= '2000-01-01'
-```
-
-ℹ️ The methods `like`, `startWith`, `endWith`, and `contain` already include quotes in the received value.
-
 
 ### Date and Time functions
 
@@ -256,6 +240,35 @@ $sql = select( time() );
 // Oracle       : SELECT CURRENT_TIMESTAMP
 // SQLServer    : SELECT CURRENT_TIMESTAMP
 ```
+
+### String functions
+
+#### `upper`
+
+`upper($text)` converts a text or field to uppercase. Example:
+
+```php
+$sql = select( upper('foo') )->from( 'example' )->end();
+// MySQL        : SELECT UPPER(`foo`) FROM `example`
+// PostgreSQL   : SELECT UPPER("foo") FROM "example"
+// SQLite       : SELECT UPPER(`foo`) FROM `example`
+// Oracle       : SELECT UPPER("foo") FROM "example"
+// SQLServer    : SELECT UPPER([foo]) FROM [example]
+```
+
+#### `lower`
+
+`lower($text)` converts a text or field to lowercase. Example:
+
+```php
+$sql = select( lower('foo') )->from( 'example' )->end();
+// MySQL        : SELECT LOWER(`foo`) FROM `example`
+// PostgreSQL   : SELECT LOWER("foo") FROM "example"
+// SQLite       : SELECT LOWER(`foo`) FROM `example`
+// Oracle       : SELECT LOWER("foo") FROM "example"
+// SQLServer    : SELECT LOWER([foo]) FROM [example]
+```
+
 
 ## License
 
