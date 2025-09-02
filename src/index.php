@@ -1051,58 +1051,58 @@ function dateSub( string $dateOrColumn, int|string $value, string $unit = 'day' 
 // STRING FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function upper( $str ): Value {
-    $str = __valueOrName( $str );
-    return __makeFunction( "UPPER($str)" );
+function upper( $textOrColumn ): Value {
+    $textOrColumn = __valueOrName( $textOrColumn );
+    return __makeFunction( "UPPER($textOrColumn)" );
 }
 
-function lower( $str ): Value {
-    $str = __valueOrName( $str );
-    return __makeFunction( "LOWER($str)" );
+function lower( $textOrColumn ): Value {
+    $textOrColumn = __valueOrName( $textOrColumn );
+    return __makeFunction( "LOWER($textOrColumn)" );
 }
 
-function substring( $str, int|string $pos = 1, int $len = 0 ): Value {
-    $str = __valueOrName( $str );
+function substring( $textOrColumn, int|string $pos = 1, int $len = 0 ): Value {
+    $textOrColumn = __valueOrName( $textOrColumn );
     $f = match ( DB::$type ) {
-        DBType::POSTGRESQL => ( $len > 0 ? "SUBSTRING($str FROM $pos FOR $len)" : "SUBSTRING($str FROM $pos)" ),
-        DBType::SQLITE, DBType::ORACLE => ( $len > 0 ? "SUBSTR($str, $pos, $len)" : "SUBSTR($str, $pos)" ),
-        DBType::SQLSERVER => "SUBSTRING($str, $pos, $len)",
-        default => ( $len > 0 ? "SUBSTRING($str, $pos, $len)" : "SUBSTRING($str, $pos)" ) // MySQL
+        DBType::POSTGRESQL => ( $len > 0 ? "SUBSTRING($textOrColumn FROM $pos FOR $len)" : "SUBSTRING($textOrColumn FROM $pos)" ),
+        DBType::SQLITE, DBType::ORACLE => ( $len > 0 ? "SUBSTR($textOrColumn, $pos, $len)" : "SUBSTR($textOrColumn, $pos)" ),
+        DBType::SQLSERVER => "SUBSTRING($textOrColumn, $pos, $len)",
+        default => ( $len > 0 ? "SUBSTRING($textOrColumn, $pos, $len)" : "SUBSTRING($textOrColumn, $pos)" ) // MySQL
     };
     return __makeFunction( $f );
 }
 
 
-function concat( $str1, $str2, ...$other ): string|Value {
-    $str1 = __valueOrName( $str1 );
-    $str2 = __valueOrName( $str2 );
+function concat( $textOrColumn1, $textOrColumn2, ...$other ): string|Value {
+    $textOrColumn1 = __valueOrName( $textOrColumn1 );
+    $textOrColumn2 = __valueOrName( $textOrColumn2 );
     $other = array_map( fn( $s ) => __valueOrName( $s ), $other );
 
     if ( DB::$type === DBType::ORACLE ) {
-        return implode( ' || ', [ $str1, $str2, ...$other ] );
+        return implode( ' || ', [ $textOrColumn1, $textOrColumn2, ...$other ] );
     }
 
-    $params = implode( ', ', [ $str1, $str2, ...$other ] );
+    $params = implode( ', ', [ $textOrColumn1, $textOrColumn2, ...$other ] );
     return __makeFunction( "CONCAT($params)" );
 }
 
 
-function length( $str ): Value {
-    $str = __valueOrName( $str );
+function length( $textOrColumn ): Value {
+    $textOrColumn = __valueOrName( $textOrColumn );
     $f = match ( DB::$type ) {
-        DBType::SQLSERVER => "LEN($str)",
-        DBType::MYSQL, DBType::POSTGRESQL => "CHAR_LENGTH($str)",
-        default => "LENGTH($str)"
+        DBType::SQLSERVER => "LEN($textOrColumn)",
+        DBType::MYSQL, DBType::POSTGRESQL => "CHAR_LENGTH($textOrColumn)",
+        default => "LENGTH($textOrColumn)"
     };
     return __makeFunction( $f );
 }
 
 
-function bytes( $str ): Value {
-    $str = __valueOrName( $str );
+function bytes( $textOrColumn ): Value {
+    $textOrColumn = __valueOrName( $textOrColumn );
     $f = match ( DB::$type ) {
-        DBType::SQLSERVER => "LEN($str)",
-        default => "LENGTH($str)"
+        DBType::SQLSERVER => "LEN($textOrColumn)",
+        default => "LENGTH($textOrColumn)"
     };
     return __makeFunction( $f );
 }
@@ -1111,13 +1111,13 @@ function bytes( $str ): Value {
 // NULL HANDLING FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function ifNull( $str1, $str2 ): Value {
-    $str1 = __valueOrName( $str1 );
-    $str2 = __valueOrName( $str2 );
+function ifNull( $valueOrColumm, $valueOrColumnIfNull ): Value {
+    $valueOrColumm = __valueOrName( $valueOrColumm );
+    $valueOrColumnIfNull = __valueOrName( $valueOrColumnIfNull );
     $f = match ( DB::$type ) {
-        DBType::POSTGRESQL, DBType::MYSQL => "COALESCE($str1, $str2)",
-        DBType::ORACLE => "NVL($str1,$str2)",
-        default => "IFNULL($str1, $str2)"
+        DBType::POSTGRESQL, DBType::MYSQL => "COALESCE($valueOrColumm, $valueOrColumnIfNull)",
+        DBType::ORACLE => "NVL($valueOrColumm,$valueOrColumnIfNull)",
+        default => "IFNULL($valueOrColumm, $valueOrColumnIfNull)"
     };
     return __makeFunction( $f );
 }

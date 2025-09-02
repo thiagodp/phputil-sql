@@ -92,7 +92,7 @@ Contribute to include another database or feature by opening an [Issue](https://
 
 ## API
 
-ℹ️ **Note**: All examples of generated queries are in MySQL.
+ℹ️ **Note**: Most examples of generated queries are in MySQL.
 
 ### Basic functions
 
@@ -245,28 +245,28 @@ $sql = select( time() );
 
 #### `upper`
 
-`upper($text)` converts a text or field to uppercase. Example:
+`upper( $textOrColumn )` converts a text or column to uppercase. Example:
 
 ```php
-$sql = select( upper('foo') )->from( 'example' )->end();
-// MySQL        : SELECT UPPER(`foo`) FROM `example`
-// PostgreSQL   : SELECT UPPER("foo") FROM "example"
-// SQLite       : SELECT UPPER(`foo`) FROM `example`
-// Oracle       : SELECT UPPER("foo") FROM "example"
-// SQLServer    : SELECT UPPER([foo]) FROM [example]
+$sql = select( upper('name') )->from( 'example' )->end();
+// MySQL        : SELECT UPPER(`name`) FROM `customer`
+// PostgreSQL   : SELECT UPPER("name") FROM "customer"
+// SQLite       : SELECT UPPER(`name`) FROM `customer`
+// Oracle       : SELECT UPPER("name") FROM "customer"
+// SQLServer    : SELECT UPPER([name]) FROM [customer]
 ```
 
 #### `lower`
 
-`lower($text)` converts a text or field to lowercase. Example:
+`lower( $textOrColumn )` converts a text or column to lowercase. Example:
 
 ```php
-$sql = select( lower('foo') )->from( 'example' )->end();
-// MySQL        : SELECT LOWER(`foo`) FROM `example`
-// PostgreSQL   : SELECT LOWER("foo") FROM "example"
-// SQLite       : SELECT LOWER(`foo`) FROM `example`
-// Oracle       : SELECT LOWER("foo") FROM "example"
-// SQLServer    : SELECT LOWER([foo]) FROM [example]
+$sql = select( lower('name') )->from( 'customer' )->end();
+// MySQL        : SELECT LOWER(`name`) FROM `customer`
+// PostgreSQL   : SELECT LOWER("name") FROM "customer"
+// SQLite       : SELECT LOWER(`name`) FROM `customer`
+// Oracle       : SELECT LOWER("name") FROM "customer"
+// SQLServer    : SELECT LOWER([name]) FROM [customer]
 ```
 
 
