@@ -2,6 +2,8 @@
 
 > 🪄 Simply the best SQL query builder for PHP
 
+⚠️ **Work-In-Progress!**
+
 Features:
 - Cross-database support:  MySQL, PostgreSQL, SQLite, Oracle, and SQLServer.
 - Fluid, SQL-like syntax.
@@ -19,17 +21,32 @@ composer require phputil/sql
 ```
 
 
-## Examples
+## Basic Usage
 
-ℹ️ **Note**: Queries must end with the `end()` method or the `toString()` method.
-
+ℹ️ Queries must end with the `end()` method or the `endAsString( DBType $dbType = DBType::NONE )` method.
 
 ```php
 require_once 'vendor/autoload.php';
-use phputil\sql\{DB};
+use phputil\sql\{DB, DBType};
 use function phputil\sql\{select, col};
 
+// Simple, database-independent query
+echo select()->from( 'example' )->end(); // SELECT * FROM example
+
+// Same query, but converts into a specific database
+echo select()->from( 'example' )->endAsString( DBType::MYSQL ); // SELECT * FROM `example`
+
+// Let's change the default database to MYSQL
 DB::useMySQL();
+
+// Now queries are converted to MySQL
+echo select()->from( 'example' )->end(); // SELECT * FROM `example`
+
+// But you still can choose another database using endAsString()
+echo select()->from( 'example' )->endAsString( DBType::SQLSERVER ); // SELECT * FROM [example]
+
+// Let's build a more complete query:
+//  All products with price between 100 and 999.999, order by SKU and with a paginated result
 
 $sql = select( 'p.sku', 'p.description', 'p.quantity', 'u.name AS unit', 'p.price' )->
     from( 'product p' )->
@@ -37,68 +54,99 @@ $sql = select( 'p.sku', 'p.description', 'p.quantity', 'u.name AS unit', 'p.pric
         col( 'u.id' )->equalTo( col( 'p.unit_id' ) )
     )->
     where(
-        col( 'p.price' )->greaterThan( 100.00 )->and( col( 'p.price' )->lessThan( 999.99 ) )
+        col( 'p.price' )->between( 100.00, 999.99 ) )
     )->
     orderBy( 'p.sku' )->
     limit( 10 )-> // limit to 10 rows
     offset( 20 )-> // skip the first 20 rows (e.g., 3rd page in 10-row pagination)
-    toString();
+    end();
 
+echo $sql, PHP_EOL;
 // It generates:
 //
 // SELECT `p`.`sku`, `p`.`description`, `p`.`quantity`, `u`.`name` AS `unit`, `p`.`price`
 // FROM `product` `p`
 // LEFT JOIN `unit` `u`
-//      ON `u`.`id` = `p`.`unit_id`
-// WHERE `p`.`price` >= 100 AND `p`.`price` <= 999.99
+//   ON `u`.`id` = `p`.`unit_id`
+// WHERE `p`.`price` BETWEEN 100 AND 999.99
 // ORDER BY `p`.`sku` ASC
-// LIMIT 10 OFFSET 20
+// LIMIT 10
+// OFFSET 20
+
+// 👉 You can still convert to another database: 😉
+echo $sql->toString( DBType::ORACLE );
+// It generates:
+//
+// SELECT "p"."sku", "p"."description", "p"."quantity", "u"."name" AS "unit", "p"."price"
+// FROM "product" "p"
+// LEFT JOIN "unit" "u"
+//  ON "u"."id" = "p"."unit_id"
+// WHERE "p"."price" BETWEEN 100 AND 999.99
+// ORDER BY "p"."sku" ASC
+// OFFSET 20 ROWS
+// FETCH NEXT 10 ROWS ONLY
 ```
 
-## Supported Databases
-
-- [x] MySQL
-- [x] PostgreSQL
-- [x] SQLite
-- [x] SQL Server
-- [x] Oracle
-
-Contribute to include another database or feature by opening an [Issue](https://github.com/thiagodp/phputil-sql/issues) or a [Pull Request](://github.com/thiagodp/phputil-sql/pulls).
-
-
-## Roadmap
-
-- [x] Select statement
-    - [x] Complex where clauses
-    - [x] Joins
-    - [x] Sub-queries
-    - [x] Limit and Offset
-    - [x] Aggregation functions
-    - [x] Distinct for selections and aggregation functions
-    - [x] Null handling function
-    - [x] Common date and time functions
-    - [x] Common string functions
-    - [x] Common mathematical functions
-    - [x] Automatic value conversions:
-        - [x] Add apostrophes to string values.
-        - [x] DateTime values as database strings.
-        - [x] Boolean and NULL values.
-        - [x] Array values inside `in` expressions.
-
-- [ ] Insert statement
-- [ ] Update statement
-- [ ] Delete statement
-
+➡️ See more examples in the [API section](#api).
 
 ## API
 
 ℹ️ **Note**: Most examples of generated queries are in MySQL.
 
+Index:
+- [Types](#types)
+    - [`DB`](#db), [`DBType`](#dbtype)
+- [Basic functions](#basic-functions)
+    - [`select`](#select), [`selectDistinct`](#selectdistinct), [`col`](#col), [`val`](#val), [`param`](#param), [`wrap`](#wrap)
+- [Ordering utilities](#ordering-utilities)
+    - [`asc`](#asc), [`desc`](#desc)
+- [Date and time functions](#date-and-time-functions)
+    - [`now`](#now), [`date`](#date), [`time`](#time), [`extract`](#extract), [`diffInDays`](#diffindays), [`addDays`](#adddays), [`subDays`](#subdays), [`dateAdd`](#dateadd), [`dateSub`](#datesub)
+- [String functions](#string-functions)
+    - [`upper`](#upper), [`lower`](#lower), [`substring`](#substring), [`concat`](#concat), [`length`](#length), [`bytes`](#bytes)
+- [Null handling function](#null-handling-function)
+    - [`ifNull`](#ifnull)
+- [Math functions](#math-functions)
+    - [`abs`](#abs), [`round`](#round), [`ceil`](#ceil), [`floor`](#floor), [`power`](#power), [`sqrt`](#sqrt), [`sin`](#sin), [`cos`](#cos), [`tan`](#tan)
+
+
+### Types
+
+#### `DBType`
+
+`DBType` is an enum type with the available database types: `NONE`, `MYSQL`, `POSTGRESQL`, `SQLITE`, `ORACLE`, and `SQLSERVER`.
+
+Example:
+```php
+use phputil\sql\{DBType};
+use function phputil\sql\{select};
+
+echo select()->from( 'example' )->endAsString( DBType::NONE );
+```
+
+#### `DB`
+
+`DB` is a class with static attributes that keeps the default database type for queries.
+
+```php
+use phputil\sql\{DB};
+
+echo DB::$type; // Get the current database type - by default, it is DBType::NONE
+
+// The following methods will change DB::$type
+DB::useNone(); // No specific database - that is, change to DBType::NONE
+DB::useMySQL(); // Change to DBType::MYSQL
+DB::usePostgreSQL(); // Change to DBType::POSTGRESQL
+DB::useSQLite(); // Change to DBType::SQLITE
+DB::useOracle(); // Change to DBType::ORACLE
+DB::useSQLServer(); // Change to DBType::SQLSERVER
+```
+
 ### Basic functions
 
 ```php
 // 👉 Make sure to declare their usage. Example:
-use function phputil\sql\{select, col, val, wrap};
+use function phputil\sql\{select, col, val, param, wrap};
 ```
 
 #### `select`
@@ -185,6 +233,21 @@ $sql = select( val( 1 ) );
 // SELECT 1
 ```
 
+#### `param`
+
+`param` establishes an anonymous or named parameter. Examples:
+
+```php
+// Calling param() without an argument makes an anonymous parameter
+$sql = select( 'total' )->from( 'sale' )->where( col( 'id' )->equalTo( param() ) )->end();
+// SELECT `total` FROM `sale` WHERE `id` = ?
+
+// Calling param() with an argument makes a named parameter
+$sql = select( 'total' )->from( 'sale' )->where( col( 'id' )->equalTo( param( 'id' ) ) )->end();
+// SELECT `total` FROM `sale` WHERE `id` = :id
+
+```
+
 #### `wrap`
 
 `wrap` add parenthesis around a condition. Example:
@@ -198,6 +261,27 @@ $sql = select( 'id' )->from( 'sale' )->where(
     ) )
 )->end();
 // SELECT `id` FROM `sale` WHERE `total` >= 100 AND (`customer_id` = 1234 OR `customer_id` = 4567)
+```
+
+
+### Ordering utilities
+
+#### `asc`
+
+`asc()` indicates an ascending sort order. Its usage is **optional**. Example:
+
+```php
+$sql = select()->from( 'example' )->orderBy( 'a', asc( 'b' ) )->end();
+// SELECT * FROM `example` ORDER BY `a` ASC, `b` ASC
+```
+
+#### `desc`
+
+`desc()` makes an descending sort. Example:
+
+```php
+$sql = select()->from( 'example' )->orderBy( 'a', desc( 'b' ) )->end();
+// SELECT * FROM `example` ORDER BY `a` ASC, `b` DESC
 ```
 
 ### Date and Time functions
@@ -241,6 +325,25 @@ $sql = select( time() );
 // SQLServer    : SELECT CURRENT_TIMESTAMP
 ```
 
+#### `extract`
+Documentation soon
+
+#### `diffInDays`
+Documentation soon
+
+#### `addDays`
+Documentation soon
+
+#### `subDays`
+Documentation soon
+
+#### `dateAdd`
+Documentation soon
+
+#### `dateSub`
+Documentation soon
+
+
 ### String functions
 
 #### `upper`
@@ -268,6 +371,87 @@ $sql = select( lower('name') )->from( 'customer' )->end();
 // Oracle       : SELECT LOWER("name") FROM "customer"
 // SQLServer    : SELECT LOWER([name]) FROM [customer]
 ```
+
+#### `substring`
+Documentation soon
+
+#### `concat`
+Documentation soon
+
+#### `length`
+Documentation soon
+
+#### `bytes`
+Documentation soon
+
+### Null handling function
+
+#### `ifNull`
+
+`ifNull( $valueOrColumm, $valueOrColumnIfNull )` creates a fallback for a column value when it is null. Example:
+
+```php
+$sql = select( 'name', ifNull( 'nickname', val( 'anonymous' ) ) )->from( 'user' )->end();
+// SELECT `name`, COALESCE(`nickname`, 'anonymous') FROM `user`
+
+$sql = select( 'name', ifNull( 'nickname', 'name' ) )->from( 'user' )->end();
+// SELECT `name`, COALESCE(`nickname`, `name`) FROM `user`
+```
+
+### Math functions
+
+#### `abs`
+Documentation soon
+
+#### `round`
+Documentation soon
+
+#### `ceil`
+Documentation soon
+
+#### `floor`
+Documentation soon
+
+#### `power`
+Documentation soon
+
+#### `sqrt`
+Documentation soon
+
+#### `sin`
+Documentation soon
+
+#### `cos`
+Documentation soon
+
+#### `tan`
+Documentation soon
+
+
+
+## Roadmap
+
+- [x] Select statement
+    - [x] Complex where clauses
+    - [x] Joins
+    - [x] Sub-queries
+    - [x] Limit and Offset
+    - [x] Aggregation functions
+    - [x] Distinct for selections and aggregation functions
+    - [x] Null handling function
+    - [x] Common date and time functions
+    - [x] Common string functions
+    - [x] Common mathematical functions
+    - [x] Automatic value conversions:
+        - [x] Add apostrophes to string values.
+        - [x] DateTime values as database strings.
+        - [x] Boolean and NULL values.
+        - [x] Array values inside `in` expressions.
+- [ ] Insert statement
+- [ ] Update statement
+- [ ] Delete statement
+
+👉 Contribute to include another database or feature by opening an [Issue](https://github.com/thiagodp/phputil-sql/issues) or a [Pull Request](://github.com/thiagodp/phputil-sql/pulls).
 
 
 ## License

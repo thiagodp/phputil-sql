@@ -10,52 +10,52 @@ describe( 'internal', function() {
     describe( '#__addApostropheIfNeeded', function() {
 
         it( 'returns TRUE for boolean true', function() {
-            $r = __addApostropheIfNeeded( true );
+            $r = __toValue( true );
             expect( $r )->toBe( 'TRUE' );
         } );
 
         it( 'returns FALSE for boolean false', function() {
-            $r = __addApostropheIfNeeded( false );
+            $r = __toValue( false );
             expect( $r )->toBe( 'FALSE' );
         } );
 
         describe( 'oracle database', function() {
 
             it( 'returns 1 for boolean true', function() {
-                $r = __addApostropheIfNeeded( true, true );
+                $r = __toValue( true, DBType::ORACLE );
                 expect( $r )->toBe( '1' );
             } );
 
             it( 'returns 0 for boolean false', function() {
-                $r = __addApostropheIfNeeded( false, true );
+                $r = __toValue( false, DBType::ORACLE );
                 expect( $r )->toBe( '0' );
             } );
         } );
 
         it( 'adds apostrophe to a string', function() {
-            $r = __addApostropheIfNeeded( 'Hello' );
+            $r = __toValue( 'Hello' );
             expect( $r )->toBe( "'Hello'" );
         } );
 
         it( 'does not add apostrophe to a int value', function() {
-            $r = __addApostropheIfNeeded( 50 );
+            $r = __toValue( 50 );
             expect( $r )->toBe( '50' );
         } );
 
         it( 'does not add apostrophe to a float value', function() {
-            $r = __addApostropheIfNeeded( 50.01 );
+            $r = __toValue( 50.01 );
             expect( $r )->toBe( '50.01' );
         } );
 
         it( 'adds apostrophe to a DateTime value', function() {
             $v = '2020-01-01';
             $dt = new DateTime( $v );
-            $r = __addApostropheIfNeeded( $dt );
+            $r = __toValue( $dt );
             expect( $r )->toBe( "'$v'" );
         } );
 
         it( 'returns NULL for a null value', function() {
-            $r = __addApostropheIfNeeded( null );
+            $r = __toValue( null );
             expect( $r )->toBe( 'NULL' );
         } );
 
@@ -65,22 +65,22 @@ describe( 'internal', function() {
     describe( '#__booleanString', function() {
 
         it( 'converts true', function() {
-            $r = __booleanString( true );
+            $r = __toBoolean( true );
             expect( $r )->toBe( 'TRUE' );
         } );
 
         it( 'converts false', function() {
-            $r = __booleanString( false );
+            $r = __toBoolean( false );
             expect( $r )->toBe( 'FALSE' );
         } );
 
         it( 'can convert true to integer', function() {
-            $r = __booleanString( true, true );
+            $r = __toBoolean( true, true );
             expect( $r )->toBe( '1' );
         } );
 
         it( 'can convert false to integer', function() {
-            $r = __booleanString( false, true );
+            $r = __toBoolean( false, true );
             expect( $r )->toBe( '0' );
         } );
 

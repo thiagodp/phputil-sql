@@ -20,4 +20,33 @@
 🆗- detect bool values and represent them as TRUE and FALSE
 🆗- detect null values and represent them as NULL
 
-// TODO: make it possible to create a select for a certain database -> via DB::mysql()->select(...) OR DB::with( DBType::MYSQL )->select(...)
+🆗- add conversion to different databases without using DB or global
+- make alias() a method of a column, e.g.: col( 'long' )->alias( 'l' )
+
+----
+use DB::$type internally
+
+CanLimit
+__asName
+__toValue
+
+-> keep the API as is ?
+
+Functions can be made available with a constant or a class with static methods.
+    e.g.:
+    $sql = DB::useMySQL();
+    $sql->select( $sql->max( 'total' ) )->from( 'sale' );
+
+Better yet (🤔?): let the db be defined in the last method. Internal objects represent each term:
+    e.g:
+    select( max( 'total' ) )->from( 'sale' )->end( DB::MYSQL ); // 🤔
+
+    It can be this way, but globally defined with DB::useXXX(). 👍
+
+    > functions such as max() need to be represented as an object that will receive the database type when
+        end() or toString() are executed.
+
+        select( int|float|bool|string|Value|Function )
+
+            Aggregation and other functions are objects of the type Function.
+            Class Function can have an attribute $dbType.

@@ -5,7 +5,9 @@ use DateTime;
 
 require_once 'vendor/autoload.php';
 
-DB::useMySQL();
+// DB::useMySQL();
+
+$dbType = DBType::MYSQL;
 
 echo str_repeat( '-', 70 ), "\n";
 echo "\n", select( 'a AS hello', 'b', 'o.c', '1 as hi', countDistinct( 'dice', 'd' ) )->
@@ -30,7 +32,7 @@ echo "\n", select( 'a AS hello', 'b', 'o.c', '1 as hi', countDistinct( 'dice', '
     unionDistinct(
         select( 'x', 'y', 'z' )->from( 'zoo' )->end()
     )->
-    end();
+    end()->toString( $dbType );
 
 
 // echo PHP_EOL, __parseColumnAndAlias( 'foo' );
@@ -50,68 +52,75 @@ $sql = select( 'p.sku', 'p.description', 'p.quantity', 'u.name AS unit', 'p.pric
     orderBy( 'p.sku' )->
     limit( 10 )-> // limit to 10 rows
     offset( 20 )-> // skip the first 20 rows (e.g., 3rd page in 10-row pagination)
-    toString();
+    endAsString( $dbType );
 
 echo $sql;
 
 
 echo "\n\n\n";
 
-echo "\n", selectDistinct( 'name' )->from( 'customer' )->where( col( 'name' )->like( 'John%' ) )->end();
+echo "\n", selectDistinct( 'name' )->from( 'customer' )->where( col( 'name' )->like( 'John%' ) )->endAsString( $dbType );
 
-echo "\n", select( 'total' )->from( 'sale' )->where( val( 123 )->equalTo( col( 'id' ) ) )->end();
-echo "\n", select( 'name', 'email' )->from( 'user' )->where( col( 'id' )->equalTo( 123 ) )->end();
-echo "\n", select( 'total' )->from( 'sale' )->where( col( 'id' )->equalTo( 123 ) )->end();
-echo "\n", select( 'id' )->from( 'product' )->where( col( 'qty' )->lessThan( col( 'min_qty' ) ) )->end();
-echo "\n", select( 'name' )->from( 'product' )->where( col( 'special' )->isTrue() )->end();
+echo "\n", select( 'total' )->from( 'sale' )->where( val( 123 )->equalTo( col( 'id' ) ) )->endAsString( $dbType );
+echo "\n", select( 'name', 'email' )->from( 'user' )->where( col( 'id' )->equalTo( 123 ) )->endAsString( $dbType );
+echo "\n", select( 'total' )->from( 'sale' )->where( col( 'id' )->equalTo( 123 ) )->endAsString( $dbType );
+echo "\n", select( 'id' )->from( 'product' )->where( col( 'qty' )->lessThan( col( 'min_qty' ) ) )->endAsString( $dbType );
+echo "\n", select( 'name' )->from( 'product' )->where( col( 'special' )->isTrue() )->endAsString( $dbType );
 
-echo "\n", select( 'name' )->from( 'customer' )->where( col( 'email' )->equalTo( quote( 'bob@acme.com' ) ) )->end();
+echo "\n", select( 'name' )->from( 'customer' )->where( col( 'email' )->equalTo( quote( 'bob@acme.com' ) ) )->endAsString( $dbType );
 
-echo "\n", select( 'name' )->from( 'customer' )->where( col( 'birthdate' )->greaterThanOrEqualTo( quote( '2000-01-01' ) ) )->end();
+echo "\n", select( 'name' )->from( 'customer' )->where( col( 'birthdate' )->greaterThanOrEqualTo( quote( '2000-01-01' ) ) )->endAsString( $dbType );
 
 echo "\n", select( 'id' )->from( 'sale' )->where(
     col( 'total' )->greaterThanOrEqualTo( 100 )->and(
     wrap( col( 'customer_id' )->equalTo( 1234 )->
             or( col( 'customer_id' )->equalTo( 4567 ) ) ) )
-)->end();
+    )->endAsString( $dbType );
 
-echo "\n", select( 'id' )->from( 'sale' )->where( col( 'customer_id' )->in( [ 1234, 4567, 7890 ] ) )->end();
+echo "\n", select( 'id' )->from( 'sale' )->where( col( 'customer_id' )->in( [ 1234, 4567, 7890 ] ) )->endAsString( $dbType );
 echo "\n", select( 'id' )->from( 'sale' )->where( col( 'customer_id' )->in(
     select( 'id' )->from( 'customer' )->where( col( 'salary' )->greaterThan( 100000 ) )
-) )->end();
+) )->endAsString( $dbType );
 
-echo "\n", select( '*' )->from( 'foo' )->end();
-echo "\n", select()->from( 'foo' )->end();
-// echo "\n", select( '*', alias( 'bar', 'b'  ) )->from( 'foo' )->end();
-// echo "\n", select( 'x.*', alias( 'y.bar', 'b'  ) )->from( 'x', 'y' )->end();
+echo "\n", select( '*' )->from( 'foo' )->endAsString( $dbType );
+echo "\n", select()->from( 'foo' )->endAsString( $dbType );
+// echo "\n", select( '*', alias( 'bar', 'b'  ) )->from( 'foo' )->endAsString( $dbType );
+// echo "\n", select( 'x.*', alias( 'y.bar', 'b'  ) )->from( 'x', 'y' )->endAsString( $dbType );
 
-echo "\n";
-echo "\n", select( 'foo' );
-echo "\n", select( col('foo' ) );
-echo "\n", select( val('foo' ) );
-echo "\n", select( val( 1 ) );
-echo "\n", select( "first_name + ' ' + last_name AS name" );
+echo "\n--------------------------";
+echo "\n", select( 'foo' )->toString( $dbType );
+echo "\n", select( col( 'foo' ) )->toString( $dbType );
+echo "\n", select( val( 'foo' ) )->toString( $dbType );
+echo "\n", select( val( 1 ) )->toString( $dbType );
+echo "\n", select( "first_name + ' ' + last_name AS name" )->toString( $dbType );
 echo "\n";
 
 // DB::usePostgreSQL();
 
-echo "\n", select( now() );
-echo "\n", select( date() );
-echo "\n", select( time() );
+echo "\n", select( now() )->toString( $dbType );
+echo "\n", select( now()->alias( 'n' ) )->toString( $dbType );
+echo "\n", select( date() )->toString( $dbType );
+echo "\n", select( time() )->toString( $dbType );
 
-echo "\n", select( 'one', 'two' )->from( 'three' )->where( col( 'one' )->equalTo( '2025-01-01' ) )->end();
+echo "\n", select( 'one', 'two' )->from( 'three' )->where( col( 'one' )->equalTo( '2025-01-01' ) )->endAsString( $dbType );
 
 $now = new \DateTime();
 echo "\n", select( 'one', 'two' )->from( 'three' )->where(
     col( 'one' )->equalTo( $now )->
         or( col( 'one' )->greaterThan( $now ) )->
         or( col( 'one' )->between( $now, $now ) )
-    )->end();
+    )->endAsString( $dbType );
 
-echo "\n", select( 'one', 'two' )->from( 'three' )->where( col( 'one' )->equalTo( col('one') ) )->end();
-echo "\n", select( 'one', 'two' )->from( 'three' )->where( val( $now )->equalTo( col('one') ) )->end();
+echo "\n", select( 'one', 'two' )->from( 'three' )->where( col( 'one' )->equalTo( col('one') ) )->endAsString( $dbType );
+echo "\n", select( 'one', 'two' )->from( 'three' )->where( val( $now )->equalTo( col('one') ) )->endAsString( $dbType );
 
-DB::useOracle();
+DB::useMySQL();
 
-echo "\n", select( lower('foo') )->from( 'example' )->end();
-echo "\n", select( lower(val('Hello')) )->from( 'example' )->end();
+echo "\n", select( lower('foo') )->from( 'example' )->endAsString( $dbType );
+echo "\n", select( lower(val('Hello')) )->from( 'example' )->endAsString( $dbType );
+
+echo "\n", select( 'one' )->from( 'example' )->where( col( 'id' )->equalTo( param() ) )->endAsString();
+echo "\n", select( 'one' )->from( 'example' )->where( col( 'id' )->equalTo( param('x') ) )->endAsString();
+
+echo "\n MAKES A STRING WITH DEFAULT DB type";
+echo "\n", select( 'one' )->from( 'example' )->where( col( 'id' )->equalTo( param('x') ) )->end();
