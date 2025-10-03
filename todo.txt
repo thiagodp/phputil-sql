@@ -21,6 +21,8 @@
 🆗- detect null values and represent them as NULL
 
 🆗- add conversion to different databases without using DB or global
+🆗- make alias() a method of a function.
+
 - make alias() a method of a column, e.g.: col( 'long' )->alias( 'l' )
 
 ----

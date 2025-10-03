@@ -76,9 +76,6 @@ class ConditionalOp implements Condition {
 
 
     protected function convertToString( $side, DBType $dbType = DBType::NONE ): string {
-
-        // echo is_object( $side ) ? get_class( $side ) : 'no-obj', PHP_EOL;
-
         if ( $side instanceof Column ) {
             $side = __valueOrName( $side->toString( $dbType ), $dbType );
         } else
@@ -262,12 +259,6 @@ class ComparableContent implements DBStringable {
         );
     }
 
-
-    public function __content() {
-        return $this->content;
-    }
-
-
     public function toString( DBType $dbType = DBType::NONE ): string {
 
         $content = __parseColumnAndAlias( $this->content, $dbType );
@@ -293,7 +284,7 @@ class Column implements DBStringable {
 class Value implements DBStringable {
 
     public function __construct(
-        public string $content
+        public $content
     ) {
     }
 
@@ -337,13 +328,18 @@ class Func implements DBStringable {
         public string $functionName,
         public bool $distinct,
         public $valueOrColumn,
-        public string $alias = ''
+        public string $functionAlias = ''
     ) {
+    }
+
+    public function alias( string $value ): Func {
+        $this->functionAlias = $value;
+        return $this;
     }
 
     public function toString( DBType $dbType = DBType::NONE ): string {
         $valueOrColumn = __valueOrName( $this->valueOrColumn, $dbType );
-        $alias = __asName( $this->alias, $dbType );
+        $alias = __asName( $this->functionAlias, $dbType );
         $dist = $this->distinct ? 'DISTINCT ': '';
         $f = "{$this->functionName}({$dist}{$valueOrColumn})" . ( $alias != '' ? " AS $alias" : '' );
         return $f;
@@ -872,14 +868,16 @@ function __toValue( $value, DBType $dbType = DBType::NONE ) {
 }
 
 function __valueOrName( $str, DBType $dbType ): string {
-    if ( is_string( $str ) ) {
+    if ( $str instanceof Value ) {
+        $str = __toValue( $str->content, $dbType );
+    } else if ( is_string( $str ) ) {
         $str = __asName( $str, $dbType );
     } else if ( $str instanceof Column ) {
-        $str = __asName( $str, $dbType );
-    } else if ( $str instanceof Value ) {
-        $str = __toValue( $str->__content(), $dbType );
+        $str = __asName( $str->name, $dbType );
     } else if ( $str instanceof ComparableContent ) {
-        $str = $str->toString( $dbType );
+        // $str = $str->toString( $dbType );
+        $str = __valueOrName( $str->content, $dbType ); // Evaluates according to the content type
+        // $str = __toValue( $str->content, $dbType );
     }
     return "$str";
 }
