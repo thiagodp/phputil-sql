@@ -98,7 +98,7 @@ echo "\n";
 // DB::usePostgreSQL();
 
 echo "\n", select( now() )->toString( $dbType );
-echo "\n", select( now()->alias( 'n' ) )->toString( $dbType );
+echo "\n", select( now()->as( 'n' ) )->toString( $dbType );
 echo "\n", select( date() )->toString( $dbType );
 echo "\n", select( time() )->toString( $dbType );
 

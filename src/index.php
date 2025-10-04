@@ -328,18 +328,18 @@ class Func implements DBStringable {
         public string $functionName,
         public bool $distinct,
         public $valueOrColumn,
-        public string $functionAlias = ''
+        public string $alias = ''
     ) {
     }
 
-    public function alias( string $value ): Func {
-        $this->functionAlias = $value;
+    public function as( string $alias ): Func {
+        $this->alias = $alias;
         return $this;
     }
 
     public function toString( DBType $dbType = DBType::NONE ): string {
         $valueOrColumn = __valueOrName( $this->valueOrColumn, $dbType );
-        $alias = __asName( $this->functionAlias, $dbType );
+        $alias = __asName( $this->alias, $dbType );
         $dist = $this->distinct ? 'DISTINCT ': '';
         $f = "{$this->functionName}({$dist}{$valueOrColumn})" . ( $alias != '' ? " AS $alias" : '' );
         return $f;
@@ -352,8 +352,8 @@ abstract class OnDemandFunction implements DBStringable {
 
     protected string $aliasValue = '';
 
-    public function alias( string $value ): OnDemandFunction {
-        $this->aliasValue = $value;
+    public function as( string $alias ): OnDemandFunction {
+        $this->aliasValue = $alias;
         return $this;
     }
 }
@@ -1037,22 +1037,71 @@ function time(): OnDemandFunction {
     };
 }
 
+enum Extract {
 
-function extract( string $unit, string $date ): OnDemandFunction {
-    return new class ( $unit, $date ) extends OnDemandFunction {
+    case YEAR;
+    case MONTH;
+    case DAY;
 
-        public function __construct( protected string $unit, protected string $date ) {}
+    case HOUR;
+    case MINUTE;
+    case SECOND;
+    case MICROSECOND;
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $unit = $this->unit;
-            $date = __toString( $this->date );
-            return match ( $dbType ) {
-                DBType::SQLSERVER => new Expression( 'DATEPART', true, "$unit, $date" ),
-                DBType::SQLITE => "strftime('%{$unit}', $date)",
-                default => "EXTRACT($unit FROM $date)" // MySQL, PostgreSQL, Oracle
+    case QUARTER;
+    case WEEK;
+    case WEEK_DAY;
+}
+
+class ExtractFunction extends OnDemandFunction {
+
+    protected $dateOrColumn;
+
+    public function __construct( protected Extract $unit ) {}
+
+
+    public function from( $dateOrColumn ): ExtractFunction {
+        $this->dateOrColumn = $dateOrColumn;
+        return $this;
+    }
+
+    public function toString( DBType $dbType = DBType::NONE ): string {
+
+        $unit = $this->unit->name;
+        if ( $dbType === DBType::SQLITE ) {
+            $unit = match ( $this->unit ) {
+                Extract::YEAR => '%Y',
+                Extract::MONTH => '%m',
+                Extract::DAY => '%d',
+
+                Extract::HOUR => '%H',
+                Extract::MINUTE => '%M',
+                Extract::SECOND => '%S',
+                Extract::MICROSECOND => '%f',
+
+                Extract::QUARTER => '%',
+                Extract::WEEK => '%W',
+                Extract::WEEK_DAY => '%w',
+
+                default => '%?'
             };
         }
-    };
+
+        $date = __valueOrName( $this->dateOrColumn, $dbType );
+        return match ( $dbType ) {
+            DBType::SQLSERVER => new Expression( 'DATEPART', true, "$unit, $date" ),
+            DBType::SQLITE => "strftime('%{$unit}', $date)",
+            default => "EXTRACT($unit FROM $date)" // MySQL, PostgreSQL, Oracle
+        };
+    }
+}
+
+
+function extract( Extract $unit, $dateOrColumn = '' ): ExtractFunction {
+    if ( empty( $dateOrColumn ) ) {
+        return ( new ExtractFunction( $unit ) )->from( val( '' ) );
+    }
+    return ( new ExtractFunction( $unit ) )->from( $dateOrColumn );
 }
 
 function diffInDays( string $startDate, string $endDate ): OnDemandFunction {
@@ -1082,7 +1131,7 @@ function addDays( string $dateOrColumn, int|string $value ): OnDemandFunction {
                 DBType::POSTGRESQL => 'days',
                 default => 'day'
             };
-            return dateAdd( $this->dateOrColumn, $this->value, $unit );
+            return dateAdd( $this->dateOrColumn, $this->value, $unit )->toString( $dbType );
         }
     };
 }
@@ -1097,7 +1146,7 @@ function subDays( string $dateOrColumn, int|string $value ): OnDemandFunction {
                 DBType::POSTGRESQL => 'days',
                 default => 'day'
             };
-            return dateSub( $this->dateOrColumn, $this->value, $unit );
+            return dateSub( $this->dateOrColumn, $this->value, $unit )->toString( $dbType );
         }
     };
 }
