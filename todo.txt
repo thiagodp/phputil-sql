@@ -22,8 +22,9 @@
 
 🆗- add conversion to different databases without using DB or global
 🆗- make alias() a method of a function.
+🆗- rename alias() method to as().
 
-- make alias() a method of a column, e.g.: col( 'long' )->alias( 'l' )
+- add as() method to Column, e.g.: col( 'long' )->as( 'l' )
 
 ----
 use DB::$type internally

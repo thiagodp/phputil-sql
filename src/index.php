@@ -322,7 +322,7 @@ class Expression implements DBStringable {
 }
 
 
-class Func implements DBStringable {
+class AggregateFunction implements DBStringable {
 
     public function __construct(
         public string $functionName,
@@ -332,7 +332,7 @@ class Func implements DBStringable {
     ) {
     }
 
-    public function as( string $alias ): Func {
+    public function as( string $alias ): AggregateFunction {
         $this->alias = $alias;
         return $this;
     }
@@ -348,11 +348,11 @@ class Func implements DBStringable {
 }
 
 
-abstract class OnDemandFunction implements DBStringable {
+abstract class LazyConversionFunction implements DBStringable {
 
     protected string $aliasValue = '';
 
-    public function as( string $alias ): OnDemandFunction {
+    public function as( string $alias ): LazyConversionFunction {
         $this->aliasValue = $alias;
         return $this;
     }
@@ -701,7 +701,7 @@ trait CanLimit {
 }
 
 
-class Wrap implements Condition {
+class ConditionWrapper implements Condition {
 
     public function __construct(
         protected Condition $condition
@@ -768,7 +768,7 @@ function __parseColumnAndAlias( $column, DBType $dbType ): string {
         return (string) $column->content;
     }
 
-    if ( $column instanceof Expression || $column instanceof OnDemandFunction ) {
+    if ( $column instanceof Expression || $column instanceof LazyConversionFunction ) {
         return $column->toString( $dbType );
     }
 
@@ -881,51 +881,6 @@ function __valueOrName( $str, DBType $dbType ): string {
     }
     return "$str";
 }
-
-// function __makeAggregateFunction( string $function, bool $distinct, $textOrColumn, string $alias = '' ): string {
-//     $textOrColumn = __valueOrName( $textOrColumn );
-//     $alias = __asName( $alias );
-//     $dist = $distinct ? 'DISTINCT ': '';
-//     $f = "{$function}({$dist}{$textOrColumn})" . ( $alias != '' ? " AS $alias" : '' );
-//     return __makeFunction( $f );
-// }
-
-// ----------------------------------------------------------------------------
-// AGGREGATE FUNCTIONS
-// ----------------------------------------------------------------------------
-
-function count( $column, string $alias = '' ): Func {
-    return new Func( 'COUNT', false, $column, $alias );
-}
-
-function countDistinct( $column, string $alias = '' ): Func {
-    return new Func( 'COUNT', true, $column, $alias );
-}
-
-function sum( $column, string $alias = '' ): Func {
-    return new Func( 'SUM', false, $column, $alias );
-}
-
-function sumDistinct( $column, string $alias = '' ): Func {
-    return new Func( 'SUM', true, $column, $alias );
-}
-
-function avg( $column, string $alias = '' ): Func {
-    return new Func( 'AVG', false, $column, $alias );
-}
-
-function avgDistinct( $column, string $alias = '' ): Func {
-    return new Func( 'AVG', true, $column, $alias );
-}
-
-function min( $column, string $alias = '' ): Func {
-    return new Func( 'MIN', false, $column, $alias );
-}
-
-function max( $column, string $alias = '' ): Func {
-    return new Func( 'MAX', false, $column, $alias );
-}
-
 // ----------------------------------------------------------------------------
 // BASIC FUNCTIONS
 // ----------------------------------------------------------------------------
@@ -967,7 +922,7 @@ function quote( $value ): string {
 }
 
 function wrap( Condition $c ): Condition {
-    return new Wrap( $c );
+    return new ConditionWrapper( $c );
 }
 
 // function alias( string $column, string $alias ): string {
@@ -987,11 +942,47 @@ function asc( string $column ): string {
 }
 
 // ----------------------------------------------------------------------------
+// AGGREGATE FUNCTIONS
+// ----------------------------------------------------------------------------
+
+function count( $column, string $alias = '' ): AggregateFunction {
+    return new AggregateFunction( 'COUNT', false, $column, $alias );
+}
+
+function countDistinct( $column, string $alias = '' ): AggregateFunction {
+    return new AggregateFunction( 'COUNT', true, $column, $alias );
+}
+
+function sum( $column, string $alias = '' ): AggregateFunction {
+    return new AggregateFunction( 'SUM', false, $column, $alias );
+}
+
+function sumDistinct( $column, string $alias = '' ): AggregateFunction {
+    return new AggregateFunction( 'SUM', true, $column, $alias );
+}
+
+function avg( $column, string $alias = '' ): AggregateFunction {
+    return new AggregateFunction( 'AVG', false, $column, $alias );
+}
+
+function avgDistinct( $column, string $alias = '' ): AggregateFunction {
+    return new AggregateFunction( 'AVG', true, $column, $alias );
+}
+
+function min( $column, string $alias = '' ): AggregateFunction {
+    return new AggregateFunction( 'MIN', false, $column, $alias );
+}
+
+function max( $column, string $alias = '' ): AggregateFunction {
+    return new AggregateFunction( 'MAX', false, $column, $alias );
+}
+
+// ----------------------------------------------------------------------------
 // DATE AND TIME FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function now(): OnDemandFunction {
-    return new class extends OnDemandFunction {
+function now(): LazyConversionFunction {
+    return new class extends LazyConversionFunction {
 
         public function toString( DBType $dbType = DBType::NONE ): string {
             $e = match ( $dbType ) {
@@ -1007,8 +998,8 @@ function now(): OnDemandFunction {
 }
 
 
-function date(): OnDemandFunction {
-    return new class extends OnDemandFunction {
+function date(): LazyConversionFunction {
+    return new class extends LazyConversionFunction {
 
         public function toString( DBType $dbType = DBType::NONE ): string {
             $e = match ( $dbType ) {
@@ -1023,8 +1014,8 @@ function date(): OnDemandFunction {
 }
 
 
-function time(): OnDemandFunction {
-    return new class extends OnDemandFunction {
+function time(): LazyConversionFunction {
+    return new class extends LazyConversionFunction {
 
         public function toString( DBType $dbType = DBType::NONE ): string {
             $e = match ( $dbType ) {
@@ -1053,7 +1044,7 @@ enum Extract {
     case WEEK_DAY;
 }
 
-class ExtractFunction extends OnDemandFunction {
+class ExtractFunction extends LazyConversionFunction {
 
     protected $dateOrColumn;
 
@@ -1104,8 +1095,8 @@ function extract( Extract $unit, $dateOrColumn = '' ): ExtractFunction {
     return ( new ExtractFunction( $unit ) )->from( $dateOrColumn );
 }
 
-function diffInDays( string $startDate, string $endDate ): OnDemandFunction {
-    return new class ( $startDate, $endDate ) extends OnDemandFunction {
+function diffInDays( string $startDate, string $endDate ): LazyConversionFunction {
+    return new class ( $startDate, $endDate ) extends LazyConversionFunction {
 
         public function __construct( protected string $startDate, protected string $endDate ) {}
 
@@ -1121,8 +1112,8 @@ function diffInDays( string $startDate, string $endDate ): OnDemandFunction {
     };
 }
 
-function addDays( string $dateOrColumn, int|string $value ): OnDemandFunction {
-    return new class ( $dateOrColumn, $value ) extends OnDemandFunction {
+function addDays( string $dateOrColumn, int|string $value ): LazyConversionFunction {
+    return new class ( $dateOrColumn, $value ) extends LazyConversionFunction {
 
         public function __construct( protected string $dateOrColumn, protected string $value ) {}
 
@@ -1136,8 +1127,8 @@ function addDays( string $dateOrColumn, int|string $value ): OnDemandFunction {
     };
 }
 
-function subDays( string $dateOrColumn, int|string $value ): OnDemandFunction {
-    return new class ( $dateOrColumn, $value ) extends OnDemandFunction {
+function subDays( string $dateOrColumn, int|string $value ): LazyConversionFunction {
+    return new class ( $dateOrColumn, $value ) extends LazyConversionFunction {
 
         public function __construct( protected string $dateOrColumn, protected string $value ) {}
 
@@ -1151,8 +1142,8 @@ function subDays( string $dateOrColumn, int|string $value ): OnDemandFunction {
     };
 }
 
-function dateAdd( string $dateOrColumn, int|string $value, string $unit = 'day' ): OnDemandFunction {
-    return new class ( $dateOrColumn, $value, $unit ) extends OnDemandFunction {
+function dateAdd( string $dateOrColumn, int|string $value, string $unit = 'day' ): LazyConversionFunction {
+    return new class ( $dateOrColumn, $value, $unit ) extends LazyConversionFunction {
 
         public function __construct( protected string $dateOrColumn, protected string $value, protected string $unit ) {}
 
@@ -1171,8 +1162,8 @@ function dateAdd( string $dateOrColumn, int|string $value, string $unit = 'day' 
     };
 }
 
-function dateSub( string $dateOrColumn, int|string $value, string $unit = 'day' ): OnDemandFunction {
-    return new class ( $dateOrColumn, $value, $unit ) extends OnDemandFunction {
+function dateSub( string $dateOrColumn, int|string $value, string $unit = 'day' ): LazyConversionFunction {
+    return new class ( $dateOrColumn, $value, $unit ) extends LazyConversionFunction {
 
         public function __construct( protected string $dateOrColumn, protected string $value, protected string $unit ) {}
 
@@ -1195,8 +1186,8 @@ function dateSub( string $dateOrColumn, int|string $value, string $unit = 'day' 
 // STRING FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function upper( $textOrColumn ): OnDemandFunction {
-    return new class ( $textOrColumn ) extends OnDemandFunction {
+function upper( $textOrColumn ): LazyConversionFunction {
+    return new class ( $textOrColumn ) extends LazyConversionFunction {
 
         public function __construct( protected $textOrColumn ) {}
 
@@ -1207,8 +1198,8 @@ function upper( $textOrColumn ): OnDemandFunction {
     };
 }
 
-function lower( $textOrColumn ): OnDemandFunction {
-    return new class ( $textOrColumn ) extends OnDemandFunction {
+function lower( $textOrColumn ): LazyConversionFunction {
+    return new class ( $textOrColumn ) extends LazyConversionFunction {
 
         public function __construct( protected $textOrColumn ) {}
 
@@ -1219,8 +1210,8 @@ function lower( $textOrColumn ): OnDemandFunction {
     };
 }
 
-function substring( $textOrColumn, int|string $pos = 1, int $len = 0 ): OnDemandFunction {
-    return new class ( $textOrColumn, $pos, $len ) extends OnDemandFunction {
+function substring( $textOrColumn, int|string $pos = 1, int $len = 0 ): LazyConversionFunction {
+    return new class ( $textOrColumn, $pos, $len ) extends LazyConversionFunction {
 
         public function __construct( protected $textOrColumn, protected int|string $pos = 1, protected int $len = 0 ) {}
 
@@ -1239,8 +1230,8 @@ function substring( $textOrColumn, int|string $pos = 1, int $len = 0 ): OnDemand
 }
 
 
-function concat( $textOrColumn1, $textOrColumn2, ...$other ): OnDemandFunction {
-    return new class (  $textOrColumn1, $textOrColumn2, ...$other ) extends OnDemandFunction {
+function concat( $textOrColumn1, $textOrColumn2, ...$other ): LazyConversionFunction {
+    return new class (  $textOrColumn1, $textOrColumn2, ...$other ) extends LazyConversionFunction {
 
         protected $other;
 
@@ -1264,8 +1255,8 @@ function concat( $textOrColumn1, $textOrColumn2, ...$other ): OnDemandFunction {
 }
 
 
-function length( $textOrColumn ): OnDemandFunction {
-    return new class ( $textOrColumn ) extends OnDemandFunction {
+function length( $textOrColumn ): LazyConversionFunction {
+    return new class ( $textOrColumn ) extends LazyConversionFunction {
 
         public function __construct( protected $textOrColumn ) {}
 
@@ -1281,8 +1272,8 @@ function length( $textOrColumn ): OnDemandFunction {
 }
 
 
-function bytes( $textOrColumn ): OnDemandFunction {
-    return new class ( $textOrColumn ) extends OnDemandFunction {
+function bytes( $textOrColumn ): LazyConversionFunction {
+    return new class ( $textOrColumn ) extends LazyConversionFunction {
 
         public function __construct( protected $textOrColumn ) {}
 
@@ -1300,8 +1291,8 @@ function bytes( $textOrColumn ): OnDemandFunction {
 // NULL HANDLING FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function ifNull( $valueOrColumm, $valueOrColumnIfNull ): OnDemandFunction {
-    return new class ( $valueOrColumm, $valueOrColumnIfNull ) extends OnDemandFunction {
+function ifNull( $valueOrColumm, $valueOrColumnIfNull ): LazyConversionFunction {
+    return new class ( $valueOrColumm, $valueOrColumnIfNull ) extends LazyConversionFunction {
 
         public function __construct( protected $valueOrColumm, protected $valueOrColumnIfNull ) {}
 
@@ -1321,7 +1312,7 @@ function ifNull( $valueOrColumm, $valueOrColumnIfNull ): OnDemandFunction {
 // MATHEMATICAL FUNCTIONS
 // ----------------------------------------------------------------------------
 
-class ValueOrColumnBasedOnDemandFunction extends OnDemandFunction {
+class ValueOrColumnBasedOnDemandFunction extends LazyConversionFunction {
     public function __construct( protected $functionName, protected $valueOrColumn ) {}
 
     public function toString( DBType $dbType = DBType::NONE ): string {
@@ -1331,12 +1322,12 @@ class ValueOrColumnBasedOnDemandFunction extends OnDemandFunction {
 }
 
 
-function abs( $valueOrColumn ): OnDemandFunction {
+function abs( $valueOrColumn ): LazyConversionFunction {
     return new ValueOrColumnBasedOnDemandFunction( 'ABS', $valueOrColumn );
 }
 
-function round( $valueOrColumn, int $decimals = 2 ): OnDemandFunction {
-    return new class ( $valueOrColumn, $decimals ) extends OnDemandFunction {
+function round( $valueOrColumn, int $decimals = 2 ): LazyConversionFunction {
+    return new class ( $valueOrColumn, $decimals ) extends LazyConversionFunction {
 
         public function __construct( protected $valueOrColumn, protected int $decimals = 2 ) {}
 
@@ -1348,8 +1339,8 @@ function round( $valueOrColumn, int $decimals = 2 ): OnDemandFunction {
     };
 }
 
-function ceil( $valueOrColumn ): OnDemandFunction {
-    return new class ( $valueOrColumn ) extends OnDemandFunction {
+function ceil( $valueOrColumn ): LazyConversionFunction {
+    return new class ( $valueOrColumn ) extends LazyConversionFunction {
 
         public function __construct( protected $valueOrColumn ) {}
 
@@ -1363,12 +1354,12 @@ function ceil( $valueOrColumn ): OnDemandFunction {
     };
 }
 
-function floor( $valueOrColumn ): OnDemandFunction {
+function floor( $valueOrColumn ): LazyConversionFunction {
     return new ValueOrColumnBasedOnDemandFunction( 'FLOOR', $valueOrColumn );
 }
 
-function power( $base, $exponent ): OnDemandFunction {
-    return new class ( $base, $exponent ) extends OnDemandFunction {
+function power( $base, $exponent ): LazyConversionFunction {
+    return new class ( $base, $exponent ) extends LazyConversionFunction {
 
         public function __construct( protected $base, protected $exponent ) {}
 
@@ -1380,18 +1371,18 @@ function power( $base, $exponent ): OnDemandFunction {
     };
 }
 
-function sqrt( $valueOrColumn ): OnDemandFunction {
+function sqrt( $valueOrColumn ): LazyConversionFunction {
     return new ValueOrColumnBasedOnDemandFunction( 'SQRT', $valueOrColumn );
 }
 
-function sin( $valueOrColumn ): OnDemandFunction {
+function sin( $valueOrColumn ): LazyConversionFunction {
     return new ValueOrColumnBasedOnDemandFunction( 'SIN', $valueOrColumn );
 }
 
-function cos( $valueOrColumn ): OnDemandFunction {
+function cos( $valueOrColumn ): LazyConversionFunction {
     return new ValueOrColumnBasedOnDemandFunction( 'COS', $valueOrColumn );
 }
 
-function tan( $valueOrColumn ): OnDemandFunction {
+function tan( $valueOrColumn ): LazyConversionFunction {
     return new ValueOrColumnBasedOnDemandFunction( 'TAN', $valueOrColumn );
 }

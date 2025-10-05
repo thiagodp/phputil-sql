@@ -1,7 +1,7 @@
 <?php
 namespace phputil\sql;
 
-describe( 'null handling', function() {
+describe( 'null handling function', function() {
 
     it( 'accepts two fields', function() {
         $r = ifNull( 'field1', 'field2' )->toString( DBType::MYSQL );
