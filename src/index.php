@@ -269,6 +269,21 @@ class ComparableContent implements DBStringable {
     }
 }
 
+
+class ComparableWithColumn extends ComparableContent {
+
+    public function __construct( Column $content ) {
+        parent::__construct( $content );
+    }
+
+    public function as( string $alias ): ComparableWithColumn {
+        if ( stripos( $this->content->name, ' AS ' ) === false ) {
+            $this->content->name .= ' AS ' . $alias; // It will be parse by toString() later
+        }
+        return $this;
+    }
+}
+
 class Column implements DBStringable {
 
     public function __construct(
@@ -893,8 +908,8 @@ function selectDistinct( ...$columns ): Select {
     return new Select( true, ...$columns );
 }
 
-function col( $name ): ComparableContent {
-    return new ComparableContent( new Column( $name ) );
+function col( string $name ): ComparableWithColumn {
+    return new ComparableWithColumn( new Column( $name ) );
 }
 
 function val( $value ): ComparableContent {

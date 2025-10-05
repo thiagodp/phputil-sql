@@ -5,6 +5,25 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 describe( 'utilities', function() {
 
+    describe( 'col', function() {
+
+        it( 'can have an alias with the as() method', function() {
+            $r = col( 'long' )->as( 'l' )->toString( DBType::MYSQL );
+            expect( $r )->toBe( '`long` AS `l`' );
+        } );
+
+        it( 'can have an alias directly in the column name', function() {
+            $r = col( 'long AS l' )->toString( DBType::MYSQL );
+            expect( $r )->toBe( '`long` AS `l`' );
+        } );
+
+        it( 'does not add an alias with the as() method if already given', function() {
+            $r = col( 'long AS l' )->as( 'z' )->toString( DBType::MYSQL );
+            expect( $r )->toBe( '`long` AS `l`' );
+        } );
+
+    } );
+
     describe( 'param', function() {
 
         it( 'returns a question mark when called without an argument', function() {
