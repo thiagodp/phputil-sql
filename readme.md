@@ -215,6 +215,13 @@ $sql = select( 'id' )->from( 'sale' )->where( col( 'customer_id' )->in(
 - Methods `startWith`, `endWith`, and `contain` produce a `LIKE` expression that adds `%` to the receive value.
 - In Oracle databases, the methods `isTrue()` and `isFalse()` are supported from Oracle version `23ai`. In older versions, you can use `equalTo(1)` and `equalTo(0)` respectively, for the same results.
 
+👉 `col` can also be used for creating aliases, with the `as` method. For instance, these three examples are equivalent:
+
+```php
+$sql = select( col( 'long_name' )->as( 'l' ) );
+$sql = select( col( 'long_name AS l' ) );
+$sql = select( 'long_name AS l' );
+```
 
 #### `val`
 
@@ -283,6 +290,67 @@ $sql = select()->from( 'example' )->orderBy( 'a', asc( 'b' ) )->end();
 $sql = select()->from( 'example' )->orderBy( 'a', desc( 'b' ) )->end();
 // SELECT * FROM `example` ORDER BY `a` ASC, `b` DESC
 ```
+
+### Aggregate functions
+
+Aggregate functions can receive an alias as a second argument or use the method `as` to define an alias. For instance, these two commands are equivalent:
+
+```php
+// Alias using the method as()
+$sql = select( sum( 'price * quantity' )->as( 'subtotal' ) )->from( 'sale' )->end();
+
+// Alias as the second argument
+$sql = select( sum( 'price * quantity', 'subtotal' ) )->from( 'sale' )->end();
+```
+
+#### `count`
+
+```php
+$sql = select( count( 'id' ) )->from( 'sale' )->end();
+```
+
+#### `countDistinct`
+
+```php
+$sql = select( countDistinct( 'phone_number' ) )->from( 'contact' )->end();
+```
+
+#### `sum`
+
+```php
+$sql = select( sum( 'total' ) )->from( 'order' )->end();
+```
+
+#### `sumDistinct`
+
+```php
+$sql = select( sumDistinct( 'commission' ) )->from( 'sale' )->end();
+```
+
+#### `avg`
+
+```php
+$sql = select( avg( 'price' ) )->from( 'product' )->end();
+```
+
+#### `avgDistinct`
+
+```php
+$sql = select( avgDistinct( 'receive_qty' ) )->from( 'purchase' )->end();
+```
+
+#### `min`
+
+```php
+$sql = select( min( 'price' ) )->from( 'product' )->end();
+```
+
+#### `max`
+
+```php
+$sql = select( max( 'price' ) )->from( 'product' )->end();
+```
+
 
 ### Date and Time functions
 

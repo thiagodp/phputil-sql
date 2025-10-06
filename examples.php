@@ -90,6 +90,9 @@ echo "\n", select()->from( 'foo' )->endAsString( $dbType );
 echo "\n--------------------------";
 echo "\n", select( 'foo' )->toString( $dbType );
 echo "\n", select( col( 'foo' ) )->toString( $dbType );
+echo "\n", select( col( 'long AS l' ) )->toString( $dbType );
+echo "\n", select( col( 'long' )->as( 'l' ) )->toString( $dbType );
+echo "\n", select( col( 'long AS l' )->as( 'z' ) )->toString( $dbType ); // Ignores 'z'
 echo "\n", select( val( 'foo' ) )->toString( $dbType );
 echo "\n", select( val( 1 ) )->toString( $dbType );
 echo "\n", select( "first_name + ' ' + last_name AS name" )->toString( $dbType );
@@ -178,3 +181,9 @@ echo "\n", $sql = select( 'name', ifNull( 'nickname', val( 'anonymous' ) ) )->fr
 
 echo "\n", select()->from( 'example' )->end();
 echo "\n", select()->from( 'example' )->endAsString( DBType::NONE );
+
+// Alias using the method as()
+echo "\n", $sql = select( sum( 'price * quantity' )->as( 'subtotal' ) )->from( 'sale' )->end();
+
+// Alias as the second argument
+echo "\n", $sql = select( sum( 'price * quantity', 'subtotal' ) )->from( 'sale' )->end();

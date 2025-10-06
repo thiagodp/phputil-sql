@@ -28,4 +28,24 @@ describe( 'aggregate functions', function() {
         expect( $r )->toBe( "COUNT(`long`) AS `l`" );
     } );
 
+    it( 'accepts a calculus in the column name', function() {
+        $r = count( 'a * b' )->toString( DBType::MYSQL );
+        expect( $r )->toBe( "COUNT(`a` * `b`)" );
+    } );
+
+    it( 'accepts a longer calculus in the column name', function() {
+        $r = count( 'a * b + c - d / e' )->toString( DBType::MYSQL );
+        expect( $r )->toBe( "COUNT(`a` * `b` + `c` - `d` / `e`)" );
+    } );
+
+    it( 'accepts calculus with parenthesis', function() {
+        $r = count( 'a * (b + c) - (d / e)' )->toString( DBType::MYSQL );
+        expect( $r )->toBe( "COUNT(`a` * (`b` + `c`) - (`d` / `e`))" );
+    } );
+
+    it( 'accepts calculus with parenthesis when names have backticks or quotes', function() {
+        $r = count( '`a` * (`b` + `c`) - (`d` / `e`)' )->toString( DBType::MYSQL );
+        expect( $r )->toBe( "COUNT(`a` * (`b` + `c`) - (`d` / `e`))" );
+    } );
+
 } );

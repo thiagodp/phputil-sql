@@ -353,11 +353,67 @@ class AggregateFunction implements DBStringable {
     }
 
     public function toString( DBType $dbType = DBType::NONE ): string {
-        $valueOrColumn = __valueOrName( $this->valueOrColumn, $dbType );
+
+        $valueOrColumn = trim( __valueOrName( $this->valueOrColumn, $dbType ), ' `' );
+
+        if ( trim( $valueOrColumn ) != '*' ) {
+
+            // Idea: replace the names with names plus quotes/backticks
+
+            [ $begin, $end ] = __getQuoteCharacters( $dbType );
+            $regex = '[A-z_][A-z_0-9]*'; // No spaces allowed
+
+            if ( $dbType === DBType::NONE ) { // No quotes/backticks expected
+                $regex = '/' . $regex . '/';
+                $replacement = $begin . '$0' . $end;
+                $valueOrColumn = preg_replace( $regex, $replacement, $valueOrColumn );
+
+            } else {
+                // Spaces allowed inside quotes/backticks
+                $regex = '/(\\' . $begin . '[A-z_][A-z_0-9 ]*' . '\\' . $end . '|' . $regex . ')/';
+                $replacement = fn( $matches ) => $begin . trim( $matches[ 1 ], ' `' ) . $end;
+                $valueOrColumn = preg_replace_callback( $regex, $replacement, $valueOrColumn );
+            }
+        }
+
+
         $alias = __asName( $this->alias, $dbType );
+
+        // ------------------------------------------------------------------
+
+        // $valueOrColumn = trim( __valueOrName( $this->valueOrColumn, $dbType ), ' `' );
+        // $alias = __asName( $this->alias, $dbType );
+
+        // if ( trim( $valueOrColumn ) != '*' ) {
+
+        //     $r = '/[ ]*([A-z_]+)[ ]*([*+-\/]?)/';
+        //     $matches = [];
+        //     preg_match_all( $r, $valueOrColumn, $matches, PREG_SET_ORDER );
+        //     $fields = [];
+        //     foreach ( $matches as $m ) {
+        //         [ , $field, $operator ] = $m;
+        //         $field = __asName( $field, $dbType );
+        //         if ( trim( $operator ) != '' ) {
+        //             $field .= ' ' . $operator;
+        //         }
+        //         $fields []= $field;
+        //     }
+        //     $valueOrColumn = implode( ' ', $fields );
+        // }
+
+        // ---
+
         $dist = $this->distinct ? 'DISTINCT ': '';
         $f = "{$this->functionName}({$dist}{$valueOrColumn})" . ( $alias != '' ? " AS $alias" : '' );
         return $f;
+
+        // -----------------------------------------------------------------------
+
+        // $valueOrColumn = __valueOrName( $this->valueOrColumn, $dbType );
+        // $alias = __asName( $this->alias, $dbType );
+        // $dist = $this->distinct ? 'DISTINCT ': '';
+        // $f = "{$this->functionName}({$dist}{$valueOrColumn})" . ( $alias != '' ? " AS $alias" : '' );
+        // return $f;
     }
 
 }
@@ -887,6 +943,8 @@ function __valueOrName( $str, DBType $dbType ): string {
         $str = __toValue( $str->content, $dbType );
     } else if ( is_string( $str ) ) {
         $str = __asName( $str, $dbType );
+    } else if ( $str instanceof ComparableWithColumn ) {
+        return __valueOrName( $str->content, $dbType );
     } else if ( $str instanceof Column ) {
         $str = __asName( $str->name, $dbType );
     } else if ( $str instanceof ComparableContent ) {
