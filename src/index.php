@@ -8,7 +8,7 @@ use \Stringable; // PHP 8.0+
 // Types
 // ----------------------------------------------------------------------------
 
-enum DBType: string {
+enum SQLType: string {
     case NONE = 'none';
     case MYSQL = 'mysql';
     case SQLITE = 'sqlite';
@@ -17,22 +17,22 @@ enum DBType: string {
     case SQLSERVER = 'sqlserver';
 }
 
-class DB {
-    public static DBType $type = DBType::NONE;
+class SQL {
+    public static SQLType $type = SQLType::NONE;
 
-    public static function useNone(): void { self::$type = DBType::NONE; }
-    public static function useMySQL(): void { self::$type = DBType::MYSQL; }
-    public static function useSQLite(): void { self::$type = DBType::SQLITE; }
-    public static function usePostgreSQL(): void { self::$type = DBType::POSTGRESQL; }
-    public static function useSQLServer(): void { self::$type = DBType::SQLSERVER; }
-    public static function useOracle(): void { self::$type = DBType::ORACLE; }
+    public static function useNone(): void { self::$type = SQLType::NONE; }
+    public static function useMySQL(): void { self::$type = SQLType::MYSQL; }
+    public static function useSQLite(): void { self::$type = SQLType::SQLITE; }
+    public static function usePostgreSQL(): void { self::$type = SQLType::POSTGRESQL; }
+    public static function useSQLServer(): void { self::$type = SQLType::SQLSERVER; }
+    public static function useOracle(): void { self::$type = SQLType::ORACLE; }
 }
 
 // ----------------------------------------------------------------------------
 
 interface DBStringable {
 
-    public function toString( DBType $dbType = DBType::NONE ): string;
+    public function toString( SQLType $sqlType = SQLType::NONE ): string;
 }
 
 interface Condition extends DBStringable {
@@ -75,27 +75,27 @@ class ConditionalOp implements Condition {
     }
 
 
-    protected function convertToString( $side, DBType $dbType = DBType::NONE ): string {
+    protected function convertToString( $side, SQLType $sqlType = SQLType::NONE ): string {
         if ( $side instanceof Column ) {
-            $side = __valueOrName( $side->toString( $dbType ), $dbType );
+            $side = __valueOrName( $side->toString( $sqlType ), $sqlType );
         } else
         // if ( $side instanceof ConditionalOp ) {
-        //     $side = $side->toString( $dbType );
+        //     $side = $side->toString( $sqlType );
         // } else
         if ( $side instanceof From ) {
-            $side = $side->endAsString( $dbType );
+            $side = $side->endAsString( $sqlType );
         } else if ( is_array( $side ) ) {
-            $side = array_map( fn( $x ) => __toValue( $x, $dbType ), $side );
+            $side = array_map( fn( $x ) => __toValue( $x, $sqlType ), $side );
             $side = implode( ', ', $side );
         } else {
-            $side = __toValue( $side, $dbType );
+            $side = __toValue( $side, $sqlType );
         }
         return $side;
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
-        $leftSide = $this->convertToString( $this->leftSide, $dbType );
-        $rightSide = $this->convertToString( $this->rightSide, $dbType );
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
+        $leftSide = $this->convertToString( $this->leftSide, $sqlType );
+        $rightSide = $this->convertToString( $this->rightSide, $sqlType );
         return $leftSide . ' ' . $this->operator . ' ' . $rightSide;
     }
 }
@@ -113,13 +113,13 @@ class BetweenCondition extends ConditionalOp {
         parent::__construct( 'AND', $leftSide, $rightSide );
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
         if ( is_object( $this->columnName ) && $this->columnName instanceof Column ) {
-            $column = $this->columnName->toString( $dbType );
+            $column = $this->columnName->toString( $sqlType );
         } else {
-            $column = __asName( $this->columnName, $dbType );
+            $column = __asName( $this->columnName, $sqlType );
         }
-        return $column . ' BETWEEN ' . parent::toString( $dbType );
+        return $column . ' BETWEEN ' . parent::toString( $sqlType );
     }
 
 }
@@ -133,9 +133,9 @@ class InCondition extends ConditionalOp {
         parent::__construct( 'IN', $leftSide, $rightSide );
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
-        $left = $this->convertToString( $this->leftSide, $dbType );
-        $right = $this->convertToString( $this->rightSide, $dbType );
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
+        $left = $this->convertToString( $this->leftSide, $sqlType );
+        $right = $this->convertToString( $this->rightSide, $sqlType );
         return $left . ' ' . $this->operator . ' (' . $right . ')';
     }
 }
@@ -259,13 +259,13 @@ class ComparableContent implements DBStringable {
         );
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
 
-        $content = __parseColumnAndAlias( $this->content, $dbType );
+        $content = __parseColumnAndAlias( $this->content, $sqlType );
         if ( empty( $this->conditions ) ) {
             return $content;
         }
-        return $content . ' ' . __conditionsToString( $this->conditions, $dbType );
+        return $content . ' ' . __conditionsToString( $this->conditions, $sqlType );
     }
 }
 
@@ -291,8 +291,8 @@ class Column implements DBStringable {
     ) {
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
-        return __parseColumnAndAlias( $this->name, $dbType );
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
+        return __parseColumnAndAlias( $this->name, $sqlType );
     }
 }
 
@@ -303,8 +303,8 @@ class Value implements DBStringable {
     ) {
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
-        return __toValue( $this->content, $dbType );
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
+        return __toValue( $this->content, $sqlType );
     }
 }
 
@@ -319,15 +319,15 @@ class Expression implements DBStringable {
     ) {
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
 
         $alias = '';
         if ( ! empty( $this->alias ) ) {
-            $alias = __asName( $this->alias, $dbType );
+            $alias = __asName( $this->alias, $sqlType );
             $alias = ' AS ' . $alias;
         }
 
-        $arg = __valueOrName( $this->arg, $dbType );
+        $arg = __valueOrName( $this->arg, $sqlType );
 
         if ( $this->isFunction ) {
             return $this->name . '(' . $arg . ')' . $alias;
@@ -352,18 +352,18 @@ class AggregateFunction implements DBStringable {
         return $this;
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
 
-        $valueOrColumn = trim( __valueOrName( $this->valueOrColumn, $dbType ), ' `' );
+        $valueOrColumn = trim( __valueOrName( $this->valueOrColumn, $sqlType ), ' `' );
 
         if ( trim( $valueOrColumn ) != '*' ) {
 
             // Idea: replace the names with names plus quotes/backticks
 
-            [ $begin, $end ] = __getQuoteCharacters( $dbType );
+            [ $begin, $end ] = __getQuoteCharacters( $sqlType );
             $regex = '[A-z_][A-z_0-9]*'; // No spaces allowed
 
-            if ( $dbType === DBType::NONE ) { // No quotes/backticks expected
+            if ( $sqlType === SQLType::NONE ) { // No quotes/backticks expected
                 $regex = '/' . $regex . '/';
                 $replacement = $begin . '$0' . $end;
                 $valueOrColumn = preg_replace( $regex, $replacement, $valueOrColumn );
@@ -377,12 +377,12 @@ class AggregateFunction implements DBStringable {
         }
 
 
-        $alias = __asName( $this->alias, $dbType );
+        $alias = __asName( $this->alias, $sqlType );
 
         // ------------------------------------------------------------------
 
-        // $valueOrColumn = trim( __valueOrName( $this->valueOrColumn, $dbType ), ' `' );
-        // $alias = __asName( $this->alias, $dbType );
+        // $valueOrColumn = trim( __valueOrName( $this->valueOrColumn, $sqlType ), ' `' );
+        // $alias = __asName( $this->alias, $sqlType );
 
         // if ( trim( $valueOrColumn ) != '*' ) {
 
@@ -392,7 +392,7 @@ class AggregateFunction implements DBStringable {
         //     $fields = [];
         //     foreach ( $matches as $m ) {
         //         [ , $field, $operator ] = $m;
-        //         $field = __asName( $field, $dbType );
+        //         $field = __asName( $field, $sqlType );
         //         if ( trim( $operator ) != '' ) {
         //             $field .= ' ' . $operator;
         //         }
@@ -409,8 +409,8 @@ class AggregateFunction implements DBStringable {
 
         // -----------------------------------------------------------------------
 
-        // $valueOrColumn = __valueOrName( $this->valueOrColumn, $dbType );
-        // $alias = __asName( $this->alias, $dbType );
+        // $valueOrColumn = __valueOrName( $this->valueOrColumn, $sqlType );
+        // $alias = __asName( $this->alias, $sqlType );
         // $dist = $this->distinct ? 'DISTINCT ': '';
         // $f = "{$this->functionName}({$dist}{$valueOrColumn})" . ( $alias != '' ? " AS $alias" : '' );
         // return $f;
@@ -472,21 +472,21 @@ class Select implements DBStringable, Stringable {
     }
 
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
 
         $columns = [];
         if ( empty( $this->columns ) ) {
             $columns = [ '*' ];
         } else {
-            $columns = array_map( fn($c) => __parseColumnAndAlias( $c, $dbType ), $this->columns );
+            $columns = array_map( fn($c) => __parseColumnAndAlias( $c, $sqlType ), $this->columns );
         }
-        $from = $this->from ? $this->from->toString( $dbType ) : '';
+        $from = $this->from ? $this->from->toString( $sqlType ) : '';
         return 'SELECT ' . ( $this->distinct ? 'DISTINCT ' : '' ) . implode( ', ', $columns ) . $from;
     }
 
 
     public function __toString(): string {
-        return $this->toString( DB::$type ); // Uses the database type set as default
+        return $this->toString( SQL::$type ); // Uses the database type set as default
     }
 }
 
@@ -498,11 +498,11 @@ class TableData implements DBStringable {
     ) {
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
 
         $pieces = __parseSeparatedValues( $this->table );
-        $tableName = __asName( $pieces[ 0 ] ?? '', $dbType );
-        $tableAlias = __asName( $pieces[ 1 ] ?? '', $dbType );
+        $tableName = __asName( $pieces[ 0 ] ?? '', $sqlType );
+        $tableAlias = __asName( $pieces[ 1 ] ?? '', $sqlType );
 
         // ---------------------------------------------------------------------
 
@@ -623,45 +623,45 @@ class From implements DBStringable {
         return $this->parent;
     }
 
-    public function endAsString( DBType $dbType = DBType::NONE ): string {
-        return $this->end()->toString( $dbType );
+    public function endAsString( SQLType $sqlType = SQLType::NONE ): string {
+        return $this->end()->toString( $sqlType );
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
 
-        $tableNames = array_map( fn( $t ) => $t->toString( $dbType ), $this->tables );
+        $tableNames = array_map( fn( $t ) => $t->toString( $sqlType ), $this->tables );
         $s = ' FROM ' . implode( ', ', $tableNames );
         foreach ( $this->joins as $j ) {
-            $s .= ' ' . $j->toString( $dbType );
+            $s .= ' ' . $j->toString( $sqlType );
         }
 
-        $where = __conditionsToString( $this->whereConditions, $dbType );
+        $where = __conditionsToString( $this->whereConditions, $sqlType );
         if ( $where != '' ) {
             $s .= ' WHERE' . $where;
         }
 
-        $groupByColumns = array_map( fn($c) => __parseColumnAndAlias( $c, $dbType ), $this->groupByColumns );
+        $groupByColumns = array_map( fn($c) => __parseColumnAndAlias( $c, $sqlType ), $this->groupByColumns );
 
         if ( ! empty( $groupByColumns ) ) {
             $s .= ' GROUP BY ' . implode( ', ', $groupByColumns );
 
             if ( $this->havingCondition ) {
-                $s .= ' HAVING ' . $this->havingCondition->toString( $dbType );
+                $s .= ' HAVING ' . $this->havingCondition->toString( $sqlType );
             }
         }
 
         if ( ! empty( $this->columnOrderings )) {
-            $orderings = array_map( fn( $c ) => $c->toString( $dbType ), $this->columnOrderings );
+            $orderings = array_map( fn( $c ) => $c->toString( $sqlType ), $this->columnOrderings );
             $s .= ' ORDER BY ' . implode( ', ', $orderings );
         }
 
-        $limitOffset = $this->makeLimitAndOffset( $dbType );
+        $limitOffset = $this->makeLimitAndOffset( $sqlType );
         if ( ! empty( $limitOffset ) ) {
             $s .= $limitOffset;
         }
 
         if ( $this->unionSelect !== null ) {
-            $s .= ' UNION ' . ( $this->isUnionDistinct ? 'DISTINCT ' : '' ) . $this->unionSelect->toString( $dbType );
+            $s .= ' UNION ' . ( $this->isUnionDistinct ? 'DISTINCT ' : '' ) . $this->unionSelect->toString( $sqlType );
         }
 
         return $s;
@@ -687,15 +687,15 @@ class Join implements DBStringable {
         return $this->parent;
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
 
         $values = __parseSeparatedValues( $this->table );
-        $declaration = __asName( $values[ 0 ], $dbType );
+        $declaration = __asName( $values[ 0 ], $sqlType );
         if ( isset( $values[ 1 ] ) ) {
-            $declaration .= ' ' . __asName( $values[ 1 ], $dbType );
+            $declaration .= ' ' . __asName( $values[ 1 ], $sqlType );
         }
 
-        return $this->type . ' ' . $declaration . ' ON ' . $this->condition->toString( $dbType );
+        return $this->type . ' ' . $declaration . ' ON ' . $this->condition->toString( $sqlType );
     }
 }
 
@@ -707,10 +707,10 @@ class ColumnOrdering implements DBStringable {
     ) {
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
 
         $pieces = __parseSeparatedValues( $this->column );
-        $column = __parseColumnAndAlias( $pieces[ 0 ] ?? '', $dbType );
+        $column = __parseColumnAndAlias( $pieces[ 0 ] ?? '', $sqlType );
         $direction = strtoupper( $pieces[ 1 ] ?? 'ASC' ) == 'DESC' ? 'DESC' : 'ASC';
 
         return $column . ' ' . $direction;
@@ -742,11 +742,11 @@ trait CanLimit {
      *
      * @return string
      */
-    protected function makeLimitAndOffset( DBType $dbType = DBType::NONE ): string {
+    protected function makeLimitAndOffset( SQLType $sqlType = SQLType::NONE ): string {
 
         // Compatible with: SQLServer, Oracle.
 
-        if ( $dbType === DBType::ORACLE || $dbType === DBType::SQLSERVER ) {
+        if ( $sqlType === SQLType::ORACLE || $sqlType === SQLType::SQLSERVER ) {
             $s = '';
             if ( $this->offsetValue > 0 ) {
                 $s .= ' OFFSET ' . $this->offsetValue . ' ROWS';
@@ -779,8 +779,8 @@ class ConditionWrapper implements Condition {
     ) {
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
-        return '('. $this->condition->toString( $dbType ) . ')';
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
+        return '('. $this->condition->toString( $sqlType ) . ')';
     }
 
     public function and( Condition $other ): Condition {
@@ -804,12 +804,12 @@ class ConditionWrapper implements Condition {
 // INTERNAL
 // ----------------------------------------------------------------------------
 
-function __getQuoteCharacters( DBType $dbType = DBType::NONE ): array {
-    return match( $dbType ) {
-        DBType::NONE => [ '', '' ], // Empty
-        DBType::MYSQL, DBType::SQLITE => [ '`', '`' ], // Backticks
-        DBType::ORACLE, DBType::POSTGRESQL => [ '"', '"' ], // Quotes
-        DBType::SQLSERVER => [ '[', ']' ], // Square brackets
+function __getQuoteCharacters( SQLType $sqlType = SQLType::NONE ): array {
+    return match( $sqlType ) {
+        SQLType::NONE => [ '', '' ], // Empty
+        SQLType::MYSQL, SQLType::SQLITE => [ '`', '`' ], // Backticks
+        SQLType::ORACLE, SQLType::POSTGRESQL => [ '"', '"' ], // Quotes
+        SQLType::SQLSERVER => [ '[', ']' ], // Square brackets
     };
 }
 
@@ -820,16 +820,16 @@ function __parseSeparatedValues( string $column ): array {
 }
 
 
-function __conditionsToString( array $conditions, DBType $dbType ): string {
+function __conditionsToString( array $conditions, SQLType $sqlType ): string {
     $r = '';
     foreach ( $conditions as $c ) {
-        $r .= ' ' . $c->toString( $dbType );
+        $r .= ' ' . $c->toString( $sqlType );
     }
     return $r;
 }
 
 
-function __parseColumnAndAlias( $column, DBType $dbType ): string {
+function __parseColumnAndAlias( $column, SQLType $sqlType ): string {
 
     if ( $column instanceof ComparableContent ) {
         $column = $column->content;
@@ -840,11 +840,11 @@ function __parseColumnAndAlias( $column, DBType $dbType ): string {
     }
 
     if ( $column instanceof Expression || $column instanceof LazyConversionFunction ) {
-        return $column->toString( $dbType );
+        return $column->toString( $sqlType );
     }
 
     if ( $column instanceof DBStringable ) {
-        $column = $column->toString( $dbType );
+        $column = $column->toString( $sqlType );
     }
 
     if ( ! is_string( $column ) ) {
@@ -858,25 +858,25 @@ function __parseColumnAndAlias( $column, DBType $dbType ): string {
         if ( ! is_numeric( $column ) ) {
             $pieces = explode( '.', $column );
             if ( isset( $pieces[ 1 ] ) ) { // Table plus column
-                $table = __asName( $pieces[ 0 ], $dbType );
-                $column = $table . '.' . __asName( $pieces[ 1 ], $dbType );
+                $table = __asName( $pieces[ 0 ], $sqlType );
+                $column = $table . '.' . __asName( $pieces[ 1 ], $sqlType );
             } else {
-                $column = __asName( $pieces[ 0 ], $dbType );
+                $column = __asName( $pieces[ 0 ], $sqlType );
             }
         }
         if ( isset( $matches[ 2 ] ) ) {
-            $alias = __asName( trim( $matches[ 2 ] ), $dbType );
+            $alias = __asName( trim( $matches[ 2 ] ), $sqlType );
             return $column . ' AS ' . $alias;
         }
     }
     return $column;
 }
 
-function __asName( string $name, DBType $dbType ): string {
+function __asName( string $name, SQLType $sqlType ): string {
     if ( $name === '*' ) { // Ignore quotes for a star
         return $name;
     }
-    $quotes = __getQuoteCharacters( $dbType );
+    $quotes = __getQuoteCharacters( $sqlType );
     if ( $quotes[ 0 ] != '' && $name != '' && $name[ 0 ] != $quotes[ 0 ] ) {
         return $quotes[ 0 ] . $name . $quotes[ 1 ];
     }
@@ -911,7 +911,7 @@ function __toBoolean( bool $value, bool $asInteger = false ): string {
     return $value ? 'TRUE' : 'FALSE';
 }
 
-function __toValue( $value, DBType $dbType = DBType::NONE ) {
+function __toValue( $value, SQLType $sqlType = SQLType::NONE ) {
 
     if ( is_null( $value ) ) {
         return 'NULL';
@@ -922,15 +922,15 @@ function __toValue( $value, DBType $dbType = DBType::NONE ) {
         if ( is_string( $content ) || is_numeric( $content ) ) {
             return (string) $content;
         }
-        return __toValue( $content, $dbType );
+        return __toValue( $content, $sqlType );
     } else if ( $value instanceof Column ) {
-        return __asName( $value->toString( $dbType ), $dbType );
+        return __asName( $value->toString( $sqlType ), $sqlType );
     } else if ( $value instanceof DBStringable ) {
-        return $value->toString( $dbType );
+        return $value->toString( $sqlType );
     } else if ( $value instanceof DateTimeInterface ) {
         return __toDateString( $value );
     } else if ( is_bool( $value ) ) {
-        return __toBoolean( $value, $dbType === DBType::ORACLE );
+        return __toBoolean( $value, $sqlType === SQLType::ORACLE );
     } else if ( is_array( $value ) ) {
         return $value;
     }
@@ -938,19 +938,19 @@ function __toValue( $value, DBType $dbType = DBType::NONE ) {
     return "$value"; // to string
 }
 
-function __valueOrName( $str, DBType $dbType ): string {
+function __valueOrName( $str, SQLType $sqlType ): string {
     if ( $str instanceof Value ) {
-        $str = __toValue( $str->content, $dbType );
+        $str = __toValue( $str->content, $sqlType );
     } else if ( is_string( $str ) ) {
-        $str = __asName( $str, $dbType );
+        $str = __asName( $str, $sqlType );
     } else if ( $str instanceof ComparableWithColumn ) {
-        return __valueOrName( $str->content, $dbType );
+        return __valueOrName( $str->content, $sqlType );
     } else if ( $str instanceof Column ) {
-        $str = __asName( $str->name, $dbType );
+        $str = __asName( $str->name, $sqlType );
     } else if ( $str instanceof ComparableContent ) {
-        // $str = $str->toString( $dbType );
-        $str = __valueOrName( $str->content, $dbType ); // Evaluates according to the content type
-        // $str = __toValue( $str->content, $dbType );
+        // $str = $str->toString( $sqlType );
+        $str = __valueOrName( $str->content, $sqlType ); // Evaluates according to the content type
+        // $str = __toValue( $str->content, $sqlType );
     }
     return "$str";
 }
@@ -1057,14 +1057,14 @@ function max( $column, string $alias = '' ): AggregateFunction {
 function now(): LazyConversionFunction {
     return new class extends LazyConversionFunction {
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $e = match ( $dbType ) {
-                DBType::SQLITE => new Expression( 'DATETIME', true, "'now'", $this->aliasValue ),
-                DBType::ORACLE => new Expression( 'SYSDATE', false, '', $this->aliasValue  ),
-                DBType::SQLSERVER => new Expression( 'CURRENT_TIMESTAMP', false, '', $this->aliasValue  ),
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $e = match ( $sqlType ) {
+                SQLType::SQLITE => new Expression( 'DATETIME', true, "'now'", $this->aliasValue ),
+                SQLType::ORACLE => new Expression( 'SYSDATE', false, '', $this->aliasValue  ),
+                SQLType::SQLSERVER => new Expression( 'CURRENT_TIMESTAMP', false, '', $this->aliasValue  ),
                 default => new Expression( 'NOW', true, '', $this->aliasValue ) // MySQL, PostgreSQL
             };
-            return $e->toString( $dbType );
+            return $e->toString( $sqlType );
         }
 
     };
@@ -1074,13 +1074,13 @@ function now(): LazyConversionFunction {
 function date(): LazyConversionFunction {
     return new class extends LazyConversionFunction {
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $e = match ( $dbType ) {
-                DBType::ORACLE => new Expression( 'SYSDATE', false ),
-                DBType::SQLSERVER => new Expression( 'GETDATE', true ),
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $e = match ( $sqlType ) {
+                SQLType::ORACLE => new Expression( 'SYSDATE', false ),
+                SQLType::SQLSERVER => new Expression( 'GETDATE', true ),
                 default => new Expression( 'CURRENT_DATE', false ) // MySQL, PostgreSQL, SQLite
             };
-            return $e->toString( $dbType );
+            return $e->toString( $sqlType );
         }
 
     };
@@ -1090,12 +1090,12 @@ function date(): LazyConversionFunction {
 function time(): LazyConversionFunction {
     return new class extends LazyConversionFunction {
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $e = match ( $dbType ) {
-                DBType::ORACLE, DBType::SQLSERVER => new Expression( 'CURRENT_TIMESTAMP', false ),
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $e = match ( $sqlType ) {
+                SQLType::ORACLE, SQLType::SQLSERVER => new Expression( 'CURRENT_TIMESTAMP', false ),
                 default => new Expression( 'CURRENT_TIME', false ) // MySQL, PostgreSQL, SQLite
             };
-            return $e->toString( $dbType );
+            return $e->toString( $sqlType );
         }
 
     };
@@ -1129,10 +1129,10 @@ class ExtractFunction extends LazyConversionFunction {
         return $this;
     }
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
 
         $unit = $this->unit->name;
-        if ( $dbType === DBType::SQLITE ) {
+        if ( $sqlType === SQLType::SQLITE ) {
             $unit = match ( $this->unit ) {
                 Extract::YEAR => '%Y',
                 Extract::MONTH => '%m',
@@ -1151,10 +1151,10 @@ class ExtractFunction extends LazyConversionFunction {
             };
         }
 
-        $date = __valueOrName( $this->dateOrColumn, $dbType );
-        return match ( $dbType ) {
-            DBType::SQLSERVER => new Expression( 'DATEPART', true, "$unit, $date" ),
-            DBType::SQLITE => "strftime('%{$unit}', $date)",
+        $date = __valueOrName( $this->dateOrColumn, $sqlType );
+        return match ( $sqlType ) {
+            SQLType::SQLSERVER => new Expression( 'DATEPART', true, "$unit, $date" ),
+            SQLType::SQLITE => "strftime('%{$unit}', $date)",
             default => "EXTRACT($unit FROM $date)" // MySQL, PostgreSQL, Oracle
         };
     }
@@ -1173,12 +1173,12 @@ function diffInDays( string $startDate, string $endDate ): LazyConversionFunctio
 
         public function __construct( protected string $startDate, protected string $endDate ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $startDate = __toString( $this->startDate );
             $endDate = __toString( $this->endDate );
-            return match ( $dbType ) {
-                DBType::ORACLE, DBType::POSTGRESQL, DBType::SQLITE => "$endDate - $startDate",
-                DBType::SQLSERVER => "DATEDIFF(day, $startDate, $endDate)",
+            return match ( $sqlType ) {
+                SQLType::ORACLE, SQLType::POSTGRESQL, SQLType::SQLITE => "$endDate - $startDate",
+                SQLType::SQLSERVER => "DATEDIFF(day, $startDate, $endDate)",
                 default => "DATEDIFF($startDate, $endDate)" // MySQL
             };
         }
@@ -1190,12 +1190,12 @@ function addDays( string $dateOrColumn, int|string $value ): LazyConversionFunct
 
         public function __construct( protected string $dateOrColumn, protected string $value ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $unit = match ( $dbType ) {
-                DBType::POSTGRESQL => 'days',
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $unit = match ( $sqlType ) {
+                SQLType::POSTGRESQL => 'days',
                 default => 'day'
             };
-            return dateAdd( $this->dateOrColumn, $this->value, $unit )->toString( $dbType );
+            return dateAdd( $this->dateOrColumn, $this->value, $unit )->toString( $sqlType );
         }
     };
 }
@@ -1205,12 +1205,12 @@ function subDays( string $dateOrColumn, int|string $value ): LazyConversionFunct
 
         public function __construct( protected string $dateOrColumn, protected string $value ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $unit = match ( $dbType ) {
-                DBType::POSTGRESQL => 'days',
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $unit = match ( $sqlType ) {
+                SQLType::POSTGRESQL => 'days',
                 default => 'day'
             };
-            return dateSub( $this->dateOrColumn, $this->value, $unit )->toString( $dbType );
+            return dateSub( $this->dateOrColumn, $this->value, $unit )->toString( $sqlType );
         }
     };
 }
@@ -1220,15 +1220,15 @@ function dateAdd( string $dateOrColumn, int|string $value, string $unit = 'day' 
 
         public function __construct( protected string $dateOrColumn, protected string $value, protected string $unit ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $dateOrColumn = __toString( $this->dateOrColumn );
             $value = $this->value;
-            $unit = $dbType === DBType::MYSQL ? strtoupper( $this->unit ) : strtolower( $this->unit );
-            return match ( $dbType ) {
-                DBType::ORACLE => "$dateOrColumn + $value",
-                DBType::SQLSERVER => "DATEADD($unit, $value, $dateOrColumn)",
-                DBType::SQLITE => "DATE($dateOrColumn, +{$value} $unit",
-                DBType::POSTGRESQL => "$dateOrColumn + INTERVAL $value $unit",
+            $unit = $sqlType === SQLType::MYSQL ? strtoupper( $this->unit ) : strtolower( $this->unit );
+            return match ( $sqlType ) {
+                SQLType::ORACLE => "$dateOrColumn + $value",
+                SQLType::SQLSERVER => "DATEADD($unit, $value, $dateOrColumn)",
+                SQLType::SQLITE => "DATE($dateOrColumn, +{$value} $unit",
+                SQLType::POSTGRESQL => "$dateOrColumn + INTERVAL $value $unit",
                 default => "DATE_ADD($dateOrColumn, INTERVAL $value $unit)" // MySQL
             };
         }
@@ -1240,15 +1240,15 @@ function dateSub( string $dateOrColumn, int|string $value, string $unit = 'day' 
 
         public function __construct( protected string $dateOrColumn, protected string $value, protected string $unit ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $dateOrColumn = __toString( $this->dateOrColumn );
             $value = $this->value;
-            $unit = $dbType === DBType::MYSQL ? strtoupper( $this->unit ) : strtolower( $this->unit );
-            return match ( $dbType ) {
-                DBType::ORACLE => "$dateOrColumn - $value",
-                DBType::SQLSERVER => "DATESUB($unit, $value, $dateOrColumn)",
-                DBType::SQLITE => "DATE($dateOrColumn, -{$value} $unit",
-                DBType::POSTGRESQL => "$dateOrColumn - INTERVAL $value $unit",
+            $unit = $sqlType === SQLType::MYSQL ? strtoupper( $this->unit ) : strtolower( $this->unit );
+            return match ( $sqlType ) {
+                SQLType::ORACLE => "$dateOrColumn - $value",
+                SQLType::SQLSERVER => "DATESUB($unit, $value, $dateOrColumn)",
+                SQLType::SQLITE => "DATE($dateOrColumn, -{$value} $unit",
+                SQLType::POSTGRESQL => "$dateOrColumn - INTERVAL $value $unit",
                 default => "DATE_SUB($dateOrColumn, INTERVAL $value $unit)" // MySQL
             };
         }
@@ -1264,8 +1264,8 @@ function upper( $textOrColumn ): LazyConversionFunction {
 
         public function __construct( protected $textOrColumn ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $textOrColumn = __valueOrName( $this->textOrColumn, $dbType );
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
             return "UPPER($textOrColumn)";
         }
     };
@@ -1276,8 +1276,8 @@ function lower( $textOrColumn ): LazyConversionFunction {
 
         public function __construct( protected $textOrColumn ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $textOrColumn = __valueOrName( $this->textOrColumn, $dbType );
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
             return "LOWER($textOrColumn)";
         }
     };
@@ -1288,14 +1288,14 @@ function substring( $textOrColumn, int|string $pos = 1, int $len = 0 ): LazyConv
 
         public function __construct( protected $textOrColumn, protected int|string $pos = 1, protected int $len = 0 ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $textOrColumn = __valueOrName( $this->textOrColumn, $dbType );
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
             $pos = $this->pos;
             $len = $this->len;
-            return match ( $dbType ) {
-                DBType::POSTGRESQL => ( $len > 0 ? "SUBSTRING($textOrColumn FROM $pos FOR $len)" : "SUBSTRING($textOrColumn FROM $pos)" ),
-                DBType::SQLITE, DBType::ORACLE => ( $len > 0 ? "SUBSTR($textOrColumn, $pos, $len)" : "SUBSTR($textOrColumn, $pos)" ),
-                DBType::SQLSERVER => "SUBSTRING($textOrColumn, $pos, $len)",
+            return match ( $sqlType ) {
+                SQLType::POSTGRESQL => ( $len > 0 ? "SUBSTRING($textOrColumn FROM $pos FOR $len)" : "SUBSTRING($textOrColumn FROM $pos)" ),
+                SQLType::SQLITE, SQLType::ORACLE => ( $len > 0 ? "SUBSTR($textOrColumn, $pos, $len)" : "SUBSTR($textOrColumn, $pos)" ),
+                SQLType::SQLSERVER => "SUBSTRING($textOrColumn, $pos, $len)",
                 default => ( $len > 0 ? "SUBSTRING($textOrColumn, $pos, $len)" : "SUBSTRING($textOrColumn, $pos)" ) // MySQL
             };
         }
@@ -1312,12 +1312,12 @@ function concat( $textOrColumn1, $textOrColumn2, ...$other ): LazyConversionFunc
             $this->other = $other;
         }
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $textOrColumn1 = __valueOrName( $this->textOrColumn1, $dbType );
-            $textOrColumn2 = __valueOrName( $this->textOrColumn2, $dbType );
-            $other = array_map( fn( $s ) => __valueOrName( $s, $dbType ), $this->other );
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $textOrColumn1 = __valueOrName( $this->textOrColumn1, $sqlType );
+            $textOrColumn2 = __valueOrName( $this->textOrColumn2, $sqlType );
+            $other = array_map( fn( $s ) => __valueOrName( $s, $sqlType ), $this->other );
 
-            if ( $dbType === DBType::ORACLE ) {
+            if ( $sqlType === SQLType::ORACLE ) {
                 return implode( ' || ', [ $textOrColumn1, $textOrColumn2, ...$other ] );
             }
 
@@ -1333,11 +1333,11 @@ function length( $textOrColumn ): LazyConversionFunction {
 
         public function __construct( protected $textOrColumn ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $textOrColumn = __valueOrName( $this->textOrColumn, $dbType );
-            return match ( $dbType ) {
-                DBType::SQLSERVER => "LEN($textOrColumn)",
-                DBType::MYSQL, DBType::POSTGRESQL => "CHAR_LENGTH($textOrColumn)",
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
+            return match ( $sqlType ) {
+                SQLType::SQLSERVER => "LEN($textOrColumn)",
+                SQLType::MYSQL, SQLType::POSTGRESQL => "CHAR_LENGTH($textOrColumn)",
                 default => "LENGTH($textOrColumn)"
             };
         }
@@ -1350,10 +1350,10 @@ function bytes( $textOrColumn ): LazyConversionFunction {
 
         public function __construct( protected $textOrColumn ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $textOrColumn = __valueOrName( $this->textOrColumn, $dbType );
-            return match ( $dbType ) {
-                DBType::SQLSERVER => "LEN($textOrColumn)",
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
+            return match ( $sqlType ) {
+                SQLType::SQLSERVER => "LEN($textOrColumn)",
                 default => "LENGTH($textOrColumn)"
             };
         }
@@ -1369,12 +1369,12 @@ function ifNull( $valueOrColumm, $valueOrColumnIfNull ): LazyConversionFunction 
 
         public function __construct( protected $valueOrColumm, protected $valueOrColumnIfNull ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $valueOrColumm = __valueOrName( $this->valueOrColumm, $dbType );
-            $valueOrColumnIfNull = __valueOrName( $this->valueOrColumnIfNull, $dbType );
-            return match ( $dbType ) {
-                DBType::POSTGRESQL, DBType::MYSQL => "COALESCE($valueOrColumm, $valueOrColumnIfNull)",
-                DBType::ORACLE => "NVL($valueOrColumm,$valueOrColumnIfNull)",
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $valueOrColumm = __valueOrName( $this->valueOrColumm, $sqlType );
+            $valueOrColumnIfNull = __valueOrName( $this->valueOrColumnIfNull, $sqlType );
+            return match ( $sqlType ) {
+                SQLType::POSTGRESQL, SQLType::MYSQL => "COALESCE($valueOrColumm, $valueOrColumnIfNull)",
+                SQLType::ORACLE => "NVL($valueOrColumm,$valueOrColumnIfNull)",
                 default => "IFNULL($valueOrColumm, $valueOrColumnIfNull)"
             };
         }
@@ -1388,8 +1388,8 @@ function ifNull( $valueOrColumm, $valueOrColumnIfNull ): LazyConversionFunction 
 class ValueOrColumnBasedOnDemandFunction extends LazyConversionFunction {
     public function __construct( protected $functionName, protected $valueOrColumn ) {}
 
-    public function toString( DBType $dbType = DBType::NONE ): string {
-        $valueOrColumn = __valueOrName( $this->valueOrColumn, $dbType );
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
+        $valueOrColumn = __valueOrName( $this->valueOrColumn, $sqlType );
         return $this->functionName . '(' . $valueOrColumn . ')';
     }
 }
@@ -1404,8 +1404,8 @@ function round( $valueOrColumn, int $decimals = 2 ): LazyConversionFunction {
 
         public function __construct( protected $valueOrColumn, protected int $decimals = 2 ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $valueOrColumn = __valueOrName( $this->valueOrColumn, $dbType );
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $valueOrColumn = __valueOrName( $this->valueOrColumn, $sqlType );
             $decimals = $this->decimals;
             return "ROUND($valueOrColumn, $decimals)";
         }
@@ -1417,10 +1417,10 @@ function ceil( $valueOrColumn ): LazyConversionFunction {
 
         public function __construct( protected $valueOrColumn ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $valueOrColumn = __valueOrName( $this->valueOrColumn, $dbType );
-            return match( $dbType ) {
-                DBType::SQLSERVER => "CEILING($valueOrColumn)",
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $valueOrColumn = __valueOrName( $this->valueOrColumn, $sqlType );
+            return match( $sqlType ) {
+                SQLType::SQLSERVER => "CEILING($valueOrColumn)",
                 default => "CEIL($valueOrColumn)"
             };
         }
@@ -1436,9 +1436,9 @@ function power( $base, $exponent ): LazyConversionFunction {
 
         public function __construct( protected $base, protected $exponent ) {}
 
-        public function toString( DBType $dbType = DBType::NONE ): string {
-            $base = __valueOrName( $this->base, $dbType );
-            $exponent = __valueOrName( $this->exponent, $dbType );
+        public function toString( SQLType $sqlType = SQLType::NONE ): string {
+            $base = __valueOrName( $this->base, $sqlType );
+            $exponent = __valueOrName( $this->exponent, $sqlType );
             return "POWER($base, $exponent)";
         }
     };

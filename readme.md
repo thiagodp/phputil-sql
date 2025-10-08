@@ -5,11 +5,12 @@
 ⚠️ **Work-In-Progress!**
 
 Features:
-- Cross-database support:  MySQL, PostgreSQL, SQLite, Oracle, and SQLServer.
+- Cross-database support: MySQL, PostgreSQL, SQLite, Oracle, and SQLServer.
+- No database or external dependencies.
 - Fluid, SQL-like syntax.
-- Quote characters (like backticks) are included automatically.
+- Automatically quote columns and table names (e.g. backticks in MySQL).
 - Support to complex queries.
-- Include utility functions for: aggregation, string, date, time, and math.
+- Include utility functions for [aggregation](#aggregate-functions), [string](#string-functions), [date and time](#date-and-time-functions), and [math](#math-functions).
 
 
 ## Install
@@ -23,30 +24,61 @@ composer require phputil/sql
 
 ## Basic Usage
 
-ℹ️ Queries must end with the `end()` method or the `endAsString( DBType $dbType = DBType::NONE )` method.
+ℹ️ Use the function `select()` for creating a query. Then use the method `endAsString( SQLType $sqlType = SQLType::NONE ): string` for obtaining the SQL for a certain type.
+
 
 ```php
 require_once 'vendor/autoload.php';
-use phputil\sql\{DB, DBType};
+use phputil\sql\{SQLType};
+use function phputil\sql\{select};
+
+echo select()->from( 'example' )->endAsString();
+// SELECT * FROM example
+
+echo select( 'colum1', 'column2' )->from( 'example' )->endAsString();
+// SELECT column1, column2 FROM example
+
+echo select( 'colum1', 'column2' )->from( 'example' )->endAsString( SQLType::MYSQL );
+// SELECT `column1`, `column2` FROM `example`
+
+echo select( 'colum1', 'column2' )->from( 'example' )->endAsString( SQLType::SQLSERVER );
+// SELECT [column1], [column2] FROM [example]
+```
+
+ℹ️ By using the method `end()`, instead of `endAsString`, the desired database/SQL type is obtained from the static attribute `SQL::$type`:
+
+```php
+require_once 'vendor/autoload.php';
+use phputil\sql\{SQL, SQLType};
+use function phputil\sql\{select};
+
+// No specific SQL is set yet, so SQL::$type is SQLType::NONE
+
+echo select( 'colum1', 'column2' )->from( 'example' )->end();
+// SELECT column1, column2 FROM example
+
+// Now let's set it to MySQL (SQLType::MYSQL)
+SQL::useMySQL();
+
+// Now the same query will be converted to MySQL
+echo select( 'colum1', 'column2' )->from( 'example' )->end();
+// SELECT `column1`, `column2` FROM `example`
+
+SQL::useSQLServer();
+
+echo select( 'colum1', 'column2' )->from( 'example' )->endAsString( SQLType::SQLSERVER );
+// SELECT [column1], [column2] FROM [example]
+```
+
+Okay, let's build a query a little more complex.
+
+```php
+require_once 'vendor/autoload.php';
+use phputil\sql\{SQL, SQLType};
 use function phputil\sql\{select, col};
 
-// Simple, database-independent query
-echo select()->from( 'example' )->end(); // SELECT * FROM example
-
-// Same query, but converts into a specific database
-echo select()->from( 'example' )->endAsString( DBType::MYSQL ); // SELECT * FROM `example`
-
-// Let's change the default database to MYSQL
-DB::useMySQL();
-
-// Now queries are converted to MySQL
-echo select()->from( 'example' )->end(); // SELECT * FROM `example`
-
-// But you still can choose another database using endAsString()
-echo select()->from( 'example' )->endAsString( DBType::SQLSERVER ); // SELECT * FROM [example]
-
-// Let's build a more complete query:
-//  All products with price between 100 and 999.999, order by SKU and with a paginated result
+// Say, all products with price between 100 and 999.999, quantity above 0,
+// ordered by SKU and with a paginated result
 
 $sql = select( 'p.sku', 'p.description', 'p.quantity', 'u.name AS unit', 'p.price' )->
     from( 'product p' )->
@@ -54,7 +86,7 @@ $sql = select( 'p.sku', 'p.description', 'p.quantity', 'u.name AS unit', 'p.pric
         col( 'u.id' )->equalTo( col( 'p.unit_id' ) )
     )->
     where(
-        col( 'p.price' )->between( 100.00, 999.99 ) )
+        col( 'p.price' )->between( 100.00, 999.99 )->and( col( 'p.quantity' )->greaterThan( 0 ) )
     )->
     orderBy( 'p.sku' )->
     limit( 10 )-> // limit to 10 rows
@@ -62,20 +94,24 @@ $sql = select( 'p.sku', 'p.description', 'p.quantity', 'u.name AS unit', 'p.pric
     end();
 
 echo $sql, PHP_EOL;
+
 // It generates:
 //
 // SELECT `p`.`sku`, `p`.`description`, `p`.`quantity`, `u`.`name` AS `unit`, `p`.`price`
 // FROM `product` `p`
 // LEFT JOIN `unit` `u`
 //   ON `u`.`id` = `p`.`unit_id`
-// WHERE `p`.`price` BETWEEN 100 AND 999.99
+// WHERE `p`.`price` BETWEEN 100 AND 999.99  AND `p`.`quantity` > 0
 // ORDER BY `p`.`sku` ASC
 // LIMIT 10
 // OFFSET 20
 
-// 👉 You can still convert to another database: 😉
-echo $sql->toString( DBType::ORACLE );
-// It generates:
+
+// 👉 Since $sql holds an object,
+// you can still convert it to another database/SQL type using toString()
+echo $sql->toString( SQLType::ORACLE );
+
+// Now it generates:
 //
 // SELECT "p"."sku", "p"."description", "p"."quantity", "u"."name" AS "unit", "p"."price"
 // FROM "product" "p"
@@ -89,13 +125,14 @@ echo $sql->toString( DBType::ORACLE );
 
 ➡️ See more examples in the [API section](#api).
 
+
 ## API
 
 ℹ️ **Note**: Most examples of generated queries are in MySQL.
 
 Index:
 - [Types](#types)
-    - [`DB`](#db), [`DBType`](#dbtype)
+    - [`SQL`](#sql), [`SQLType`](#sqltype)
 - [Basic functions](#basic-functions)
     - [`select`](#select), [`selectDistinct`](#selectdistinct), [`col`](#col), [`val`](#val), [`param`](#param), [`wrap`](#wrap)
 - [Ordering utilities](#ordering-utilities)
@@ -112,34 +149,34 @@ Index:
 
 ### Types
 
-#### `DBType`
+#### `SQLType`
 
-`DBType` is an enum type with the available database types: `NONE`, `MYSQL`, `POSTGRESQL`, `SQLITE`, `ORACLE`, and `SQLSERVER`.
+`SQLType` is an enum type with these values: `NONE`, `MYSQL`, `POSTGRESQL`, `SQLITE`, `ORACLE`, and `SQLSERVER`.
 
 Example:
 ```php
-use phputil\sql\{DBType};
+use phputil\sql\{SQLType};
 use function phputil\sql\{select};
 
-echo select()->from( 'example' )->endAsString( DBType::NONE );
+echo select()->from( 'example' )->endAsString( SQLType::NONE );
 ```
 
-#### `DB`
+#### `SQL`
 
-`DB` is a class with static attributes that keeps the default database type for queries.
+`SQL` is a class with static attributes that keeps the default SQL type for queries.
 
 ```php
-use phputil\sql\{DB};
+use phputil\sql\{SQL};
 
-echo DB::$type; // Get the current database type - by default, it is DBType::NONE
+echo SQL::$type; // Get the current database type - by default, it is SQLType::NONE
 
-// The following methods will change DB::$type
-DB::useNone(); // No specific database - that is, change to DBType::NONE
-DB::useMySQL(); // Change to DBType::MYSQL
-DB::usePostgreSQL(); // Change to DBType::POSTGRESQL
-DB::useSQLite(); // Change to DBType::SQLITE
-DB::useOracle(); // Change to DBType::ORACLE
-DB::useSQLServer(); // Change to DBType::SQLSERVER
+// The following methods change SQL::$type
+SQL::useNone(); // No specific SQL type - that is, change to SQLType::NONE
+SQL::useMySQL(); // Change to SQLType::MYSQL
+SQL::usePostgreSQL(); // Change to SQLType::POSTGRESQL
+SQL::useSQLite(); // Change to SQLType::SQLITE
+SQL::useOracle(); // Change to SQLType::ORACLE
+SQL::useSQLServer(); // Change to SQLType::SQLSERVER
 ```
 
 ### Basic functions
@@ -394,7 +431,36 @@ $sql = select( time() );
 ```
 
 #### `extract`
-Documentation soon
+
+`extract()` can extract a piece of a column or a date/time/timestamp value. Examples:
+
+```php
+$sql = select( extract( Extract::DAY, 'col1' ) )->from( 'example' )->endAsString( SQLType::MYSQL );
+// SELECT EXTRACT(DAY FROM `col1`) FROM `example`
+
+$sql = select( extract( Extract::DAY, val( '2025-12-31' ) ) )->toString( SQLType::MYSQL );
+// SELECT EXTRACT(DAY FROM '2025-12-31')
+```
+
+This is the `Extract` enum:
+
+```php
+enum Extract {
+    case YEAR;
+    case MONTH;
+    case DAY;
+
+    case HOUR;
+    case MINUTE;
+    case SECOND;
+    case MICROSECOND;
+
+    case QUARTER;
+    case WEEK;
+    case WEEK_DAY;
+}
+```
+
 
 #### `diffInDays`
 Documentation soon

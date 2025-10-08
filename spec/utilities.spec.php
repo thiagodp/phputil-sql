@@ -8,17 +8,17 @@ describe( 'utilities', function() {
     describe( 'col', function() {
 
         it( 'can have an alias with the as() method', function() {
-            $r = col( 'long' )->as( 'l' )->toString( DBType::MYSQL );
+            $r = col( 'long' )->as( 'l' )->toString( SQLType::MYSQL );
             expect( $r )->toBe( '`long` AS `l`' );
         } );
 
         it( 'can have an alias directly in the column name', function() {
-            $r = col( 'long AS l' )->toString( DBType::MYSQL );
+            $r = col( 'long AS l' )->toString( SQLType::MYSQL );
             expect( $r )->toBe( '`long` AS `l`' );
         } );
 
         it( 'does not add an alias with the as() method if already given', function() {
-            $r = col( 'long AS l' )->as( 'z' )->toString( DBType::MYSQL );
+            $r = col( 'long AS l' )->as( 'z' )->toString( SQLType::MYSQL );
             expect( $r )->toBe( '`long` AS `l`' );
         } );
 

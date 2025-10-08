@@ -22,12 +22,12 @@ describe( 'internal', function() {
         describe( 'oracle database', function() {
 
             it( 'returns 1 for boolean true', function() {
-                $r = __toValue( true, DBType::ORACLE );
+                $r = __toValue( true, SQLType::ORACLE );
                 expect( $r )->toBe( '1' );
             } );
 
             it( 'returns 0 for boolean false', function() {
-                $r = __toValue( false, DBType::ORACLE );
+                $r = __toValue( false, SQLType::ORACLE );
                 expect( $r )->toBe( '0' );
             } );
         } );

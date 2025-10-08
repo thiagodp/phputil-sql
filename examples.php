@@ -7,7 +7,7 @@ require_once 'vendor/autoload.php';
 
 // DB::useMySQL();
 
-$dbType = DBType::MYSQL;
+$dbType = SQLType::MYSQL;
 
 echo str_repeat( '-', 70 ), "\n";
 echo "\n", select( 'a AS hello', 'b', 'o.c', '1 as hi', countDistinct( 'dice', 'd' ) )->
@@ -117,7 +117,7 @@ echo "\n", select( 'one', 'two' )->from( 'three' )->where(
 echo "\n", select( 'one', 'two' )->from( 'three' )->where( col( 'one' )->equalTo( col('one') ) )->endAsString( $dbType );
 echo "\n", select( 'one', 'two' )->from( 'three' )->where( val( $now )->equalTo( col('one') ) )->endAsString( $dbType );
 
-DB::useMySQL();
+SQL::useMySQL();
 
 echo "\n", select( lower('foo') )->from( 'example' )->endAsString( $dbType );
 echo "\n", select( lower(val('Hello')) )->from( 'example' )->endAsString( $dbType );
@@ -138,16 +138,16 @@ echo "\n", str_repeat( '-', 50 ), PHP_EOL;
 echo select()->from( 'example' )->end(), PHP_EOL; // SELECT * FROM example
 
 // Same query, but converts into a specific database
-echo select()->from( 'example' )->endAsString( DBType::MYSQL ), PHP_EOL; // SELECT * FROM `example`
+echo select()->from( 'example' )->endAsString( SQLType::MYSQL ), PHP_EOL; // SELECT * FROM `example`
 
 // Let's change the default database to MYSQL
-DB::useMySQL();
+SQL::useMySQL();
 
 // Now the queries are converted to MySQL
 echo select()->from( 'example' )->end(), PHP_EOL; // SELECT * FROM `example`
 
 // But you still can choose using endAsString()
-echo select()->from( 'example' )->endAsString( DBType::SQLSERVER ), PHP_EOL; // SELECT * FROM [example]
+echo select()->from( 'example' )->endAsString( SQLType::SQLSERVER ), PHP_EOL; // SELECT * FROM [example]
 
 $sql = select( 'p.sku', 'p.description', 'p.quantity', 'u.name AS unit', 'p.price' )->
     from( 'product p' )->
@@ -165,7 +165,7 @@ $sql = select( 'p.sku', 'p.description', 'p.quantity', 'u.name AS unit', 'p.pric
 echo $sql, PHP_EOL;
 
 // 👉 You can still convert to another database: 😉
-echo $sql->toString( DBType::ORACLE );
+echo $sql->toString( SQLType::ORACLE );
 
 // -------------------
 // TEMP
@@ -180,10 +180,28 @@ echo $sql = select()->from( 'example' )->orderBy( 'a', desc( 'b' ) )->end(), PHP
 echo "\n", $sql = select( 'name', ifNull( 'nickname', val( 'anonymous' ) ) )->from( 'user' )->end();
 
 echo "\n", select()->from( 'example' )->end();
-echo "\n", select()->from( 'example' )->endAsString( DBType::NONE );
+echo "\n", select()->from( 'example' )->endAsString( SQLType::NONE );
 
 // Alias using the method as()
 echo "\n", $sql = select( sum( 'price * quantity' )->as( 'subtotal' ) )->from( 'sale' )->end();
 
 // Alias as the second argument
 echo "\n", $sql = select( sum( 'price * quantity', 'subtotal' ) )->from( 'sale' )->end();
+
+
+
+
+$sql = select( 'p.sku', 'p.description', 'p.quantity', 'u.name AS unit', 'p.price' )->
+    from( 'product p' )->
+    leftJoin( 'unit u' )->on(
+        col( 'u.id' )->equalTo( col( 'p.unit_id' ) )
+    )->
+    where(
+        col( 'p.price' )->between( 100.00, 999.99 )->and( col( 'p.quantity' )->greaterThan( 0 ) )
+    )->
+    orderBy( 'p.sku' )->
+    limit( 10 )-> // limit to 10 rows
+    offset( 20 )-> // skip the first 20 rows (e.g., 3rd page in 10-row pagination)
+    end();
+
+echo $sql, PHP_EOL;
