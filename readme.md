@@ -1,11 +1,11 @@
 # phputil/sql
 
-> 🪄 Simply the best SQL query builder for PHP
+> 🪄 The best SQL query builder for PHP
 
 ⚠️ **Work-In-Progress!**
 
 Features:
-- Cross-database support: MySQL, PostgreSQL, SQLite, Oracle, and SQLServer.
+- _Cross-database support with the same API_: MySQL, PostgreSQL, SQLite, Oracle, and SQLServer.
 - No database or external dependencies.
 - Fluid, SQL-like syntax.
 - Automatically quote columns and table names (e.g. backticks in MySQL).
@@ -57,16 +57,16 @@ use function phputil\sql\{select};
 echo select( 'colum1', 'column2' )->from( 'example' )->end();
 // SELECT column1, column2 FROM example
 
-// Now let's set it to MySQL (SQLType::MYSQL)
+// Let's set it to MySQL (SQLType::MYSQL)
 SQL::useMySQL();
 
-// Now the same query will be converted to MySQL
+// Now the same query as above will be converted to MySQL
 echo select( 'colum1', 'column2' )->from( 'example' )->end();
 // SELECT `column1`, `column2` FROM `example`
 
 SQL::useSQLServer();
 
-echo select( 'colum1', 'column2' )->from( 'example' )->endAsString( SQLType::SQLSERVER );
+echo select( 'colum1', 'column2' )->from( 'example' )->end();
 // SELECT [column1], [column2] FROM [example]
 ```
 
@@ -76,6 +76,8 @@ Okay, let's build a query a little more complex.
 require_once 'vendor/autoload.php';
 use phputil\sql\{SQL, SQLType};
 use function phputil\sql\{select, col};
+
+SQL::useMySQL();
 
 // Say, all products with price between 100 and 999.999, quantity above 0,
 // ordered by SKU and with a paginated result
@@ -101,7 +103,7 @@ echo $sql, PHP_EOL;
 // FROM `product` `p`
 // LEFT JOIN `unit` `u`
 //   ON `u`.`id` = `p`.`unit_id`
-// WHERE `p`.`price` BETWEEN 100 AND 999.99  AND `p`.`quantity` > 0
+// WHERE `p`.`price` BETWEEN 100 AND 999.99 AND `p`.`quantity` > 0
 // ORDER BY `p`.`sku` ASC
 // LIMIT 10
 // OFFSET 20
@@ -117,7 +119,7 @@ echo $sql->toString( SQLType::ORACLE );
 // FROM "product" "p"
 // LEFT JOIN "unit" "u"
 //  ON "u"."id" = "p"."unit_id"
-// WHERE "p"."price" BETWEEN 100 AND 999.99
+// WHERE "p"."price" BETWEEN 100 AND 999.99 AND "p"."quantity" > 0
 // ORDER BY "p"."sku" ASC
 // OFFSET 20 ROWS
 // FETCH NEXT 10 ROWS ONLY

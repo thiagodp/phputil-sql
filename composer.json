@@ -1,12 +1,12 @@
 {
     "name": "phputil/sql",
-    "description": "Simply the best SQL query builder for PHP",
+    "description": "The best SQL query builder for PHP",
     "type": "library",
     "license": "MIT",
     "authors": [
         {
             "name": "Thiago Delgado Pinto",
-            "email": "thiago_dp@yahoo.com.br"
+            "homepage": "https://github.com/thiagodp"
         }
     ],
     "autoload": {
