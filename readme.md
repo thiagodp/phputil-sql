@@ -7,7 +7,7 @@
 Features:
 - _Cross-database support with the same API_: MySQL, PostgreSQL, SQLite, Oracle, and SQLServer.
 - No database or external dependencies.
-- Fluid, SQL-like syntax.
+- Fluid, typed, SQL-like syntax.
 - Automatically quote columns and table names (e.g. backticks in MySQL).
 - Support to complex queries.
 - Include utility functions for [aggregation](#aggregate-functions), [string](#string-functions), [date and time](#date-and-time-functions), and [math](#math-functions).
@@ -130,7 +130,7 @@ echo $sql->toString( SQLType::ORACLE );
 
 ## API
 
-ℹ️ **Note**: Most examples of generated queries are in MySQL.
+⚠️ **Note**: Most examples of generated queries are in MySQL. ⚠️
 
 Index:
 - [Types](#types)
@@ -226,6 +226,7 @@ $sql = select( 'name' )->from( 'product' )->where( col( 'special' )->isTrue() )-
 $sql = select( 'id' )->from( 'sale' )->where( col( 'customer_id' )->in( [ 1234, 4567, 7890 ] ) )->end();
 // SELECT `id` FROM `sale` WHERE `customer_id` IN (1234, 4567, 7890)
 
+// Sub-select
 $sql = select( 'id' )->from( 'sale' )->where( col( 'customer_id' )->in(
     select( 'id' )->from( 'customer' )->where( col( 'salary' )->greaterThan( 100_000 ) )
 ) )->end();
@@ -291,7 +292,6 @@ $sql = select( 'total' )->from( 'sale' )->where( col( 'id' )->equalTo( param() )
 // Calling param() with an argument makes a named parameter
 $sql = select( 'total' )->from( 'sale' )->where( col( 'id' )->equalTo( param( 'id' ) ) )->end();
 // SELECT `total` FROM `sale` WHERE `id` = :id
-
 ```
 
 #### `wrap`
@@ -336,10 +336,20 @@ Aggregate functions can receive an alias as a second argument or use the method 
 
 ```php
 // Alias using the method as()
-$sql = select( sum( 'price * quantity' )->as( 'subtotal' ) )->from( 'sale' )->end();
+$sql = select(
+        'date',
+        sum( 'price * quantity' )->as( 'subtotal' ), // 👈
+    )->from( 'sale' )->
+    groupBy( 'date' )->
+    end();
 
 // Alias as the second argument
-$sql = select( sum( 'price * quantity', 'subtotal' ) )->from( 'sale' )->end();
+$sql = select(
+        'date',
+        sum( 'price * quantity', 'subtotal' ), // 👈
+    )->from( 'sale' )->
+    groupBy( 'date' )->
+    end();
 ```
 
 #### `count`
