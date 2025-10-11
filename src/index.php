@@ -53,8 +53,8 @@ class ConditionalOp implements Condition {
 
     public function __construct(
         protected string $operator,
-        protected $leftSide,
-        protected $rightSide
+        protected mixed $leftSide,
+        protected mixed $rightSide
     ) {
     }
 
@@ -75,18 +75,11 @@ class ConditionalOp implements Condition {
     }
 
 
-    protected function convertToString( $side, SQLType $sqlType = SQLType::NONE ): string {
+    protected function convertToString( mixed $side, SQLType $sqlType = SQLType::NONE ): string {
         if ( $side instanceof Column ) {
             $side = __valueOrName( $side->toString( $sqlType ), $sqlType );
-        } else
-        // if ( $side instanceof ConditionalOp ) {
-        //     $side = $side->toString( $sqlType );
-        // } else
-        if ( $side instanceof From ) {
+        } else if ( $side instanceof From ) {
             $side = $side->endAsString( $sqlType );
-        } else if ( is_array( $side ) ) {
-            $side = array_map( fn( $x ) => __toValue( $x, $sqlType ), $side );
-            $side = implode( ', ', $side );
         } else {
             $side = __toValue( $side, $sqlType );
         }
@@ -106,18 +99,20 @@ class ConditionalOp implements Condition {
 class BetweenCondition extends ConditionalOp {
 
     public function __construct(
-        protected $columnName,
-        $leftSide,
-        $rightSide
+        protected string|Column $columnName,
+        mixed $leftSide,
+        mixed $rightSide
     ) {
         parent::__construct( 'AND', $leftSide, $rightSide );
     }
 
     public function toString( SQLType $sqlType = SQLType::NONE ): string {
-        if ( is_object( $this->columnName ) && $this->columnName instanceof Column ) {
+        if ( is_object( $this->columnName ) ) {
             $column = $this->columnName->toString( $sqlType );
-        } else {
+        } else if ( is_string( $this->columnName ) ) {
             $column = __asName( $this->columnName, $sqlType );
+        } else {
+            $column = $this->columnName . ''; // to string
         }
         return $column . ' BETWEEN ' . parent::toString( $sqlType );
     }
@@ -129,7 +124,7 @@ class BetweenCondition extends ConditionalOp {
 // ----------------------------------------------------------------------------
 class InCondition extends ConditionalOp {
 
-    public function __construct($leftSide, $rightSide) {
+    public function __construct( mixed $leftSide, mixed $rightSide ) {
         parent::__construct( 'IN', $leftSide, $rightSide );
     }
 
@@ -150,7 +145,7 @@ class ComparableContent implements DBStringable {
     protected $conditions = [];
 
     public function __construct(
-        public $content
+        public mixed $content
     ) {
     }
 
@@ -159,66 +154,66 @@ class ComparableContent implements DBStringable {
         return $c;
     }
 
-    public function equalTo( $rightSide ): Condition {
+    public function equalTo( mixed $rightSide ): Condition {
         return $this->add(
             new ConditionalOp( '=', $this->content, $rightSide )
         );
     }
 
-    public function notEqualTo( $rightSide ): Condition {
+    public function notEqualTo( mixed $rightSide ): Condition {
         return $this->add(
             new ConditionalOp( '<>', $this->content, $rightSide )
         );
     }
 
     /** Alias for `notEqualTo()` */
-    public function differentFrom( $rightSide ): Condition {
+    public function differentFrom( mixed $rightSide ): Condition {
         return $this->notEqualTo( $rightSide );
     }
 
-    public function greaterThan( $rightSide ): Condition {
+    public function greaterThan( mixed $rightSide ): Condition {
         return $this->add(
             new ConditionalOp( '>', $this->content, $rightSide )
         );
     }
 
-    public function greaterThanOrEqualTo( $rightSide ): Condition {
+    public function greaterThanOrEqualTo( mixed $rightSide ): Condition {
         return $this->add(
             new ConditionalOp( '>=', $this->content, $rightSide )
         );
     }
 
-    public function lessThan( $rightSide ): Condition {
+    public function lessThan( mixed $rightSide ): Condition {
         return $this->add(
             new ConditionalOp( '<', $this->content, $rightSide )
         );
     }
 
-    public function lessThanOrEqualTo( $rightSide ): Condition {
+    public function lessThanOrEqualTo( mixed $rightSide ): Condition {
         return $this->add(
             new ConditionalOp( '<=', $this->content, $rightSide )
         );
     }
 
-    public function like( $rightSide ): Condition {
+    public function like( mixed $rightSide ): Condition {
         return $this->add(
             new ConditionalOp( 'LIKE',  $this->content, $rightSide )
         );
     }
 
-    public function startWith( $rightSide ): Condition {
+    public function startWith( string $rightSide ): Condition {
         return $this->like( $rightSide . '%' );
     }
 
-    public function endWith( $rightSide ): Condition {
+    public function endWith( string $rightSide ): Condition {
         return $this->like( '%' . $rightSide );
     }
 
-    public function contain( $rightSide ): Condition {
+    public function contain( string $rightSide ): Condition {
         return $this->like( '%' . $rightSide . '%' );
     }
 
-    public function between( $min, $max ): Condition {
+    public function between( mixed $min, mixed $max ): Condition {
         return $this->add(
             new BetweenCondition( $this->content, $min, $max )
         );
@@ -277,8 +272,10 @@ class ComparableWithColumn extends ComparableContent {
     }
 
     public function as( string $alias ): ComparableWithColumn {
-        if ( stripos( $this->content->name, ' AS ' ) === false ) {
-            $this->content->name .= ' AS ' . $alias; // It will be parse by toString() later
+        /** @var Column */
+        $column = $this->content;
+        if ( stripos( $column->name, ' AS ' ) === false ) {
+            $column->name .= ' AS ' . $alias; // It will be parse by toString() later
         }
         return $this;
     }
@@ -299,7 +296,7 @@ class Column implements DBStringable {
 class Value implements DBStringable {
 
     public function __construct(
-        public $content
+        public mixed $content
     ) {
     }
 
@@ -314,7 +311,7 @@ class Expression implements DBStringable {
     public function __construct(
         public string $name,
         public bool $isFunction = false,
-        public $arg = '',
+        public string $arg = '',
         public string $alias = ''
     ) {
     }
@@ -342,7 +339,7 @@ class AggregateFunction implements DBStringable {
     public function __construct(
         public string $functionName,
         public bool $distinct,
-        public $valueOrColumn,
+        public bool|int|float|string|ComparableContent $valueOrColumn,
         public string $alias = ''
     ) {
     }
@@ -371,49 +368,16 @@ class AggregateFunction implements DBStringable {
             } else {
                 // Spaces allowed inside quotes/backticks
                 $regex = '/(\\' . $begin . '[A-z_][A-z_0-9 ]*' . '\\' . $end . '|' . $regex . ')/';
-                $replacement = fn( $matches ) => $begin . trim( $matches[ 1 ], ' `' ) . $end;
+                $replacement = fn( array $matches ) => $begin . trim( $matches[ 1 ] ?? '', ' `' ) . $end;
                 $valueOrColumn = preg_replace_callback( $regex, $replacement, $valueOrColumn );
             }
         }
 
-
         $alias = __asName( $this->alias, $sqlType );
-
-        // ------------------------------------------------------------------
-
-        // $valueOrColumn = trim( __valueOrName( $this->valueOrColumn, $sqlType ), ' `' );
-        // $alias = __asName( $this->alias, $sqlType );
-
-        // if ( trim( $valueOrColumn ) != '*' ) {
-
-        //     $r = '/[ ]*([A-z_]+)[ ]*([*+-\/]?)/';
-        //     $matches = [];
-        //     preg_match_all( $r, $valueOrColumn, $matches, PREG_SET_ORDER );
-        //     $fields = [];
-        //     foreach ( $matches as $m ) {
-        //         [ , $field, $operator ] = $m;
-        //         $field = __asName( $field, $sqlType );
-        //         if ( trim( $operator ) != '' ) {
-        //             $field .= ' ' . $operator;
-        //         }
-        //         $fields []= $field;
-        //     }
-        //     $valueOrColumn = implode( ' ', $fields );
-        // }
-
-        // ---
 
         $dist = $this->distinct ? 'DISTINCT ': '';
         $f = "{$this->functionName}({$dist}{$valueOrColumn})" . ( $alias != '' ? " AS $alias" : '' );
         return $f;
-
-        // -----------------------------------------------------------------------
-
-        // $valueOrColumn = __valueOrName( $this->valueOrColumn, $sqlType );
-        // $alias = __asName( $this->alias, $sqlType );
-        // $dist = $this->distinct ? 'DISTINCT ': '';
-        // $f = "{$this->functionName}({$dist}{$valueOrColumn})" . ( $alias != '' ? " AS $alias" : '' );
-        // return $f;
     }
 
 }
@@ -435,18 +399,13 @@ abstract class LazyConversionFunction implements DBStringable {
 
 class Select implements DBStringable, Stringable {
 
-    protected array $columns;
+    /** @var mixed[] */
+    protected $columns = [];
     protected ?From $from = null;
 
-    /**
-     * Constructor
-     *
-     * @param bool $distinct
-     * @param string[] $columns
-     */
     public function __construct(
         protected bool $distinct,
-        ...$columns
+        mixed ...$columns
     ) {
         // OLD:
         // if ( empty( $columns ) ) {
@@ -457,16 +416,12 @@ class Select implements DBStringable, Stringable {
         $this->columns = $columns;
     }
 
-    /**
-     * Selects from one or more tables.
-     *
-     * @param string $table
-     * @param string[] $tables
-     * @return From
-     */
-    public function from( string $table, ...$tables ): From {
+    public function from( string $table, string ...$tables ): From {
         array_unshift( $tables, $table );
+
+        /** @var TableData[] */
         $tableData = array_map( fn( $t ) => new TableData( $t ), $tables );
+
         $this->from = new From( $this, $tableData );
         return $this->from;
     }
@@ -519,18 +474,18 @@ class From implements DBStringable {
     use CanLimit;
 
     /** @var Condition[] $whereConditions */
-    protected array $whereConditions = [];
+    protected $whereConditions = [];
 
     /** @var Join[] $joins */
-    protected array $joins = [];
+    protected $joins = [];
 
     /** @var string[] $groupByColumns */
-    protected array $groupByColumns = [];
+    protected $groupByColumns = [];
 
     protected ?Condition $havingCondition = null;
 
     /** @var ColumnOrdering[] $columnOrderings */
-    protected array $columnOrderings = [];
+    protected $columnOrderings = [];
     protected ?Select $unionSelect = null;
     protected bool $isUnionDistinct = false;
 
@@ -538,11 +493,11 @@ class From implements DBStringable {
      * Constructor
      *
      * @param \phputil\sql\Select $parent
-     * @param string[] $tables
+     * @param TableData[] $tables
      */
     public function __construct(
         protected Select $parent,
-        protected array $tables
+        protected $tables
     ) {
     }
 
@@ -576,20 +531,12 @@ class From implements DBStringable {
         return $this->makeJoin( $table, 'NATURAL JOIN' );
     }
 
-
-    /**
-     * @param Condition[] $conditions
-     */
-    public function where( ...$conditions ): self {
+    public function where( Condition ...$conditions ): self {
         $this->whereConditions = $conditions;
         return $this;
     }
 
-
-    /**
-     * @param string[] $columns
-     */
-    public function groupBy( ...$columns ): self {
+    public function groupBy( string ...$columns ): self {
         $this->groupByColumns = $columns;
         return $this;
     }
@@ -599,10 +546,7 @@ class From implements DBStringable {
         return $this;
     }
 
-    /**
-     * @param string[] $columnNames
-     */
-    public function orderBy( ...$columnNames ): self {
+    public function orderBy( string ...$columnNames ): self {
         $this->columnOrderings = array_map( fn($c) => new ColumnOrdering( $c ), $columnNames );
         return $this;
     }
@@ -804,6 +748,12 @@ class ConditionWrapper implements Condition {
 // INTERNAL
 // ----------------------------------------------------------------------------
 
+/**
+ * Get quote characters used by a certain database/sql type.
+ *
+ * @param \phputil\sql\SQLType $sqlType
+ * @return string[]
+ */
 function __getQuoteCharacters( SQLType $sqlType = SQLType::NONE ): array {
     return match( $sqlType ) {
         SQLType::NONE => [ '', '' ], // Empty
@@ -813,13 +763,25 @@ function __getQuoteCharacters( SQLType $sqlType = SQLType::NONE ): array {
     };
 }
 
+/**
+ * Get values that are separated by spaces.
+ *
+ * @param string $column
+ * @return string[]
+ */
 function __parseSeparatedValues( string $column ): array {
     $pieces = explode( ' ', $column );
     $pieces = array_map( 'trim', $pieces );
     return array_filter( $pieces, fn($v) => $v != '' );
 }
 
-
+/**
+ * Converts an array of conditions to a string.
+ *
+ * @param Condition[] $conditions
+ * @param \phputil\sql\SQLType $sqlType
+ * @return string
+ */
 function __conditionsToString( array $conditions, SQLType $sqlType ): string {
     $r = '';
     foreach ( $conditions as $c ) {
@@ -829,7 +791,7 @@ function __conditionsToString( array $conditions, SQLType $sqlType ): string {
 }
 
 
-function __parseColumnAndAlias( $column, SQLType $sqlType ): string {
+function __parseColumnAndAlias( mixed $column, SQLType $sqlType ): string {
 
     if ( $column instanceof ComparableContent ) {
         $column = $column->content;
@@ -883,7 +845,7 @@ function __asName( string $name, SQLType $sqlType ): string {
     return $name;
 }
 
-function __makeFunction( $function ): Value {
+function __makeFunction( mixed $function ): Value {
     return new Value( $function );
 }
 
@@ -911,7 +873,10 @@ function __toBoolean( bool $value, bool $asInteger = false ): string {
     return $value ? 'TRUE' : 'FALSE';
 }
 
-function __toValue( $value, SQLType $sqlType = SQLType::NONE ) {
+function __toValue(
+    mixed $value,
+    SQLType $sqlType = SQLType::NONE
+    ): string {
 
     if ( is_null( $value ) ) {
         return 'NULL';
@@ -932,13 +897,14 @@ function __toValue( $value, SQLType $sqlType = SQLType::NONE ) {
     } else if ( is_bool( $value ) ) {
         return __toBoolean( $value, $sqlType === SQLType::ORACLE );
     } else if ( is_array( $value ) ) {
-        return $value;
+        $toValue = fn($v) => __toValue( $v, $sqlType );
+        return implode( ', ', array_map( $toValue, $value ) );
     }
 
     return "$value"; // to string
 }
 
-function __valueOrName( $str, SQLType $sqlType ): string {
+function __valueOrName( mixed $str, SQLType $sqlType ): string {
     if ( $str instanceof Value ) {
         $str = __toValue( $str->content, $sqlType );
     } else if ( is_string( $str ) ) {
@@ -958,11 +924,11 @@ function __valueOrName( $str, SQLType $sqlType ): string {
 // BASIC FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function select( ...$columns ): Select {
+function select( mixed ...$columns ): Select {
     return new Select( false, ...$columns );
 }
 
-function selectDistinct( ...$columns ): Select {
+function selectDistinct( mixed ...$columns ): Select {
     return new Select( true, ...$columns );
 }
 
@@ -970,7 +936,7 @@ function col( string $name ): ComparableWithColumn {
     return new ComparableWithColumn( new Column( $name ) );
 }
 
-function val( $value ): ComparableContent {
+function val( mixed $value ): ComparableContent {
     $v = null;
     if ( $value instanceof DateTimeInterface ) {
         $v = new Value( __toDateString( $value ) );
@@ -980,7 +946,7 @@ function val( $value ): ComparableContent {
     return new ComparableContent( $v );
 }
 
-function param( $value = '?' ): ComparableContent {
+function param( string $value = '?' ): ComparableContent {
     $value = trim( $value );
     if ( $value === '' || $value === ':' ) {
         $value = '?';
@@ -990,7 +956,7 @@ function param( $value = '?' ): ComparableContent {
     return val( $value );
 }
 
-function quote( $value ): string {
+function quote( string $value ): string {
     return __toString( $value );
 }
 
@@ -1018,35 +984,35 @@ function asc( string $column ): string {
 // AGGREGATE FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function count( $column, string $alias = '' ): AggregateFunction {
+function count( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'COUNT', false, $column, $alias );
 }
 
-function countDistinct( $column, string $alias = '' ): AggregateFunction {
+function countDistinct( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'COUNT', true, $column, $alias );
 }
 
-function sum( $column, string $alias = '' ): AggregateFunction {
+function sum( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'SUM', false, $column, $alias );
 }
 
-function sumDistinct( $column, string $alias = '' ): AggregateFunction {
+function sumDistinct( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'SUM', true, $column, $alias );
 }
 
-function avg( $column, string $alias = '' ): AggregateFunction {
+function avg( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'AVG', false, $column, $alias );
 }
 
-function avgDistinct( $column, string $alias = '' ): AggregateFunction {
+function avgDistinct( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'AVG', true, $column, $alias );
 }
 
-function min( $column, string $alias = '' ): AggregateFunction {
+function min( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'MIN', false, $column, $alias );
 }
 
-function max( $column, string $alias = '' ): AggregateFunction {
+function max( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'MAX', false, $column, $alias );
 }
 
@@ -1119,12 +1085,12 @@ enum Extract {
 
 class ExtractFunction extends LazyConversionFunction {
 
-    protected $dateOrColumn;
+    protected string|ComparableContent $dateOrColumn;
 
     public function __construct( protected Extract $unit ) {}
 
 
-    public function from( $dateOrColumn ): ExtractFunction {
+    public function from( string|ComparableContent $dateOrColumn ): ExtractFunction {
         $this->dateOrColumn = $dateOrColumn;
         return $this;
     }
@@ -1153,7 +1119,7 @@ class ExtractFunction extends LazyConversionFunction {
 
         $date = __valueOrName( $this->dateOrColumn, $sqlType );
         return match ( $sqlType ) {
-            SQLType::SQLSERVER => new Expression( 'DATEPART', true, "$unit, $date" ),
+            SQLType::SQLSERVER => ( new Expression( 'DATEPART', true, "$unit, $date" ) )->toString( $sqlType ),
             SQLType::SQLITE => "strftime('%{$unit}', $date)",
             default => "EXTRACT($unit FROM $date)" // MySQL, PostgreSQL, Oracle
         };
@@ -1161,21 +1127,28 @@ class ExtractFunction extends LazyConversionFunction {
 }
 
 
-function extract( Extract $unit, $dateOrColumn = '' ): ExtractFunction {
-    if ( empty( $dateOrColumn ) ) {
+function extract( Extract $unit, string|ComparableContent $dateOrColumn = '' ): ExtractFunction {
+    if ( is_string( $dateOrColumn ) && empty( $dateOrColumn ) ) {
         return ( new ExtractFunction( $unit ) )->from( val( '' ) );
     }
     return ( new ExtractFunction( $unit ) )->from( $dateOrColumn );
 }
 
-function diffInDays( string $startDate, string $endDate ): LazyConversionFunction {
+function diffInDays(
+    string|ComparableContent $startDate,
+    string|ComparableContent $endDate
+    ): LazyConversionFunction {
+
     return new class ( $startDate, $endDate ) extends LazyConversionFunction {
 
-        public function __construct( protected string $startDate, protected string $endDate ) {}
+        public function __construct(
+            protected string|ComparableContent $startDate,
+            protected string|ComparableContent $endDate
+            ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
-            $startDate = __toString( $this->startDate );
-            $endDate = __toString( $this->endDate );
+            $startDate = __valueOrName( $this->startDate, $sqlType );
+            $endDate = __valueOrName( $this->endDate, $sqlType );
             return match ( $sqlType ) {
                 SQLType::ORACLE, SQLType::POSTGRESQL, SQLType::SQLITE => "$endDate - $startDate",
                 SQLType::SQLSERVER => "DATEDIFF(day, $startDate, $endDate)",
@@ -1185,10 +1158,17 @@ function diffInDays( string $startDate, string $endDate ): LazyConversionFunctio
     };
 }
 
-function addDays( string $dateOrColumn, int|string $value ): LazyConversionFunction {
+function addDays(
+    string|ComparableContent $dateOrColumn,
+    int|string $value
+    ): LazyConversionFunction {
+
     return new class ( $dateOrColumn, $value ) extends LazyConversionFunction {
 
-        public function __construct( protected string $dateOrColumn, protected string $value ) {}
+        public function __construct(
+            protected string|ComparableContent $dateOrColumn,
+            protected int|string $value
+            ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $unit = match ( $sqlType ) {
@@ -1200,10 +1180,17 @@ function addDays( string $dateOrColumn, int|string $value ): LazyConversionFunct
     };
 }
 
-function subDays( string $dateOrColumn, int|string $value ): LazyConversionFunction {
+function subDays(
+    string|ComparableContent $dateOrColumn,
+    int|string $value
+    ): LazyConversionFunction {
+
     return new class ( $dateOrColumn, $value ) extends LazyConversionFunction {
 
-        public function __construct( protected string $dateOrColumn, protected string $value ) {}
+        public function __construct(
+            protected string|ComparableContent $dateOrColumn,
+            protected int|string $value
+            ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $unit = match ( $sqlType ) {
@@ -1215,14 +1202,23 @@ function subDays( string $dateOrColumn, int|string $value ): LazyConversionFunct
     };
 }
 
-function dateAdd( string $dateOrColumn, int|string $value, string $unit = 'day' ): LazyConversionFunction {
+function dateAdd(
+    string|ComparableContent $dateOrColumn,
+    int|string|ComparableContent $value,
+    string $unit = 'day'
+    ): LazyConversionFunction {
+
     return new class ( $dateOrColumn, $value, $unit ) extends LazyConversionFunction {
 
-        public function __construct( protected string $dateOrColumn, protected string $value, protected string $unit ) {}
+        public function __construct(
+            protected string|ComparableContent $dateOrColumn,
+            protected int|string|ComparableContent $value,
+            protected string $unit
+            ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
-            $dateOrColumn = __toString( $this->dateOrColumn );
-            $value = $this->value;
+            $dateOrColumn = __valueOrName( $this->dateOrColumn, $sqlType );
+            $value = __toValue( $this->value, $sqlType );
             $unit = $sqlType === SQLType::MYSQL ? strtoupper( $this->unit ) : strtolower( $this->unit );
             return match ( $sqlType ) {
                 SQLType::ORACLE => "$dateOrColumn + $value",
@@ -1235,14 +1231,23 @@ function dateAdd( string $dateOrColumn, int|string $value, string $unit = 'day' 
     };
 }
 
-function dateSub( string $dateOrColumn, int|string $value, string $unit = 'day' ): LazyConversionFunction {
+function dateSub(
+    string|ComparableContent $dateOrColumn,
+    int|string|ComparableContent $value,
+    string $unit = 'day'
+    ): LazyConversionFunction {
+
     return new class ( $dateOrColumn, $value, $unit ) extends LazyConversionFunction {
 
-        public function __construct( protected string $dateOrColumn, protected string $value, protected string $unit ) {}
+        public function __construct(
+            protected string|ComparableContent $dateOrColumn,
+            protected int|string|ComparableContent $value,
+            protected string $unit
+            ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
-            $dateOrColumn = __toString( $this->dateOrColumn );
-            $value = $this->value;
+            $dateOrColumn = __valueOrName( $this->dateOrColumn, $sqlType );
+            $value = __toValue( $this->value, $sqlType );
             $unit = $sqlType === SQLType::MYSQL ? strtoupper( $this->unit ) : strtolower( $this->unit );
             return match ( $sqlType ) {
                 SQLType::ORACLE => "$dateOrColumn - $value",
@@ -1259,10 +1264,10 @@ function dateSub( string $dateOrColumn, int|string $value, string $unit = 'day' 
 // STRING FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function upper( $textOrColumn ): LazyConversionFunction {
+function upper( string|ComparableContent $textOrColumn ): LazyConversionFunction {
     return new class ( $textOrColumn ) extends LazyConversionFunction {
 
-        public function __construct( protected $textOrColumn ) {}
+        public function __construct( protected string|ComparableContent $textOrColumn ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
@@ -1271,10 +1276,10 @@ function upper( $textOrColumn ): LazyConversionFunction {
     };
 }
 
-function lower( $textOrColumn ): LazyConversionFunction {
+function lower( string|ComparableContent $textOrColumn ): LazyConversionFunction {
     return new class ( $textOrColumn ) extends LazyConversionFunction {
 
-        public function __construct( protected $textOrColumn ) {}
+        public function __construct( protected string|ComparableContent $textOrColumn ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
@@ -1283,10 +1288,19 @@ function lower( $textOrColumn ): LazyConversionFunction {
     };
 }
 
-function substring( $textOrColumn, int|string $pos = 1, int $len = 0 ): LazyConversionFunction {
+function substring(
+    string|ComparableContent $textOrColumn,
+    int|string $pos = 1,
+    int $len = 0
+    ): LazyConversionFunction {
+
     return new class ( $textOrColumn, $pos, $len ) extends LazyConversionFunction {
 
-        public function __construct( protected $textOrColumn, protected int|string $pos = 1, protected int $len = 0 ) {}
+        public function __construct(
+            protected string|ComparableContent $textOrColumn,
+            protected int|string $pos = 1,
+            protected int $len = 0
+            ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
@@ -1303,12 +1317,27 @@ function substring( $textOrColumn, int|string $pos = 1, int $len = 0 ): LazyConv
 }
 
 
-function concat( $textOrColumn1, $textOrColumn2, ...$other ): LazyConversionFunction {
+function concat(
+    string|ComparableContent $textOrColumn1,
+    string|ComparableContent $textOrColumn2,
+    string|ComparableContent ...$other
+    ): LazyConversionFunction {
+
     return new class (  $textOrColumn1, $textOrColumn2, ...$other ) extends LazyConversionFunction {
 
+        /** @var string[]|\phputil\sql\ComparableContent[] */
         protected $other;
 
-        public function __construct( protected $textOrColumn1, protected $textOrColumn2, ...$other ) {
+        /**
+         * @param string|\phputil\sql\ComparableContent $textOrColumn1
+         * @param string|\phputil\sql\ComparableContent $textOrColumn2
+         * @param string|\phputil\sql\ComparableContent ...$other
+         */
+        public function __construct(
+            protected string|ComparableContent $textOrColumn1,
+            protected string|ComparableContent $textOrColumn2,
+            string|ComparableContent ...$other
+            ) {
             $this->other = $other;
         }
 
@@ -1328,10 +1357,12 @@ function concat( $textOrColumn1, $textOrColumn2, ...$other ): LazyConversionFunc
 }
 
 
-function length( $textOrColumn ): LazyConversionFunction {
+function length( string|ComparableContent $textOrColumn ): LazyConversionFunction {
     return new class ( $textOrColumn ) extends LazyConversionFunction {
 
-        public function __construct( protected $textOrColumn ) {}
+        public function __construct(
+            protected string|ComparableContent $textOrColumn
+            ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
@@ -1345,10 +1376,12 @@ function length( $textOrColumn ): LazyConversionFunction {
 }
 
 
-function bytes( $textOrColumn ): LazyConversionFunction {
+function bytes( string|ComparableContent $textOrColumn ): LazyConversionFunction {
     return new class ( $textOrColumn ) extends LazyConversionFunction {
 
-        public function __construct( protected $textOrColumn ) {}
+        public function __construct(
+            protected string|ComparableContent $textOrColumn
+            ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
@@ -1364,10 +1397,16 @@ function bytes( $textOrColumn ): LazyConversionFunction {
 // NULL HANDLING FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function ifNull( $valueOrColumm, $valueOrColumnIfNull ): LazyConversionFunction {
+function ifNull(
+    string|ComparableContent $valueOrColumm,
+    string|int|float|bool|ComparableContent $valueOrColumnIfNull
+    ): LazyConversionFunction {
     return new class ( $valueOrColumm, $valueOrColumnIfNull ) extends LazyConversionFunction {
 
-        public function __construct( protected $valueOrColumm, protected $valueOrColumnIfNull ) {}
+        public function __construct(
+            protected string|ComparableContent $valueOrColumm,
+            protected string|int|float|bool|ComparableContent $valueOrColumnIfNull
+            ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $valueOrColumm = __valueOrName( $this->valueOrColumm, $sqlType );
@@ -1386,7 +1425,10 @@ function ifNull( $valueOrColumm, $valueOrColumnIfNull ): LazyConversionFunction 
 // ----------------------------------------------------------------------------
 
 class ValueOrColumnBasedOnDemandFunction extends LazyConversionFunction {
-    public function __construct( protected $functionName, protected $valueOrColumn ) {}
+    public function __construct(
+        protected string $functionName,
+        protected string|int|float|ComparableContent $valueOrColumn
+        ) {}
 
     public function toString( SQLType $sqlType = SQLType::NONE ): string {
         $valueOrColumn = __valueOrName( $this->valueOrColumn, $sqlType );
@@ -1395,14 +1437,17 @@ class ValueOrColumnBasedOnDemandFunction extends LazyConversionFunction {
 }
 
 
-function abs( $valueOrColumn ): LazyConversionFunction {
+function abs( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
     return new ValueOrColumnBasedOnDemandFunction( 'ABS', $valueOrColumn );
 }
 
-function round( $valueOrColumn, int $decimals = 2 ): LazyConversionFunction {
+function round( string|int|float|ComparableContent $valueOrColumn, int $decimals = 2 ): LazyConversionFunction {
     return new class ( $valueOrColumn, $decimals ) extends LazyConversionFunction {
 
-        public function __construct( protected $valueOrColumn, protected int $decimals = 2 ) {}
+        public function __construct(
+            protected string|int|float|ComparableContent $valueOrColumn,
+            protected int $decimals = 2
+            ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $valueOrColumn = __valueOrName( $this->valueOrColumn, $sqlType );
@@ -1412,10 +1457,12 @@ function round( $valueOrColumn, int $decimals = 2 ): LazyConversionFunction {
     };
 }
 
-function ceil( $valueOrColumn ): LazyConversionFunction {
+function ceil( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
     return new class ( $valueOrColumn ) extends LazyConversionFunction {
 
-        public function __construct( protected $valueOrColumn ) {}
+        public function __construct(
+            protected string|int|float|ComparableContent $valueOrColumn
+            ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $valueOrColumn = __valueOrName( $this->valueOrColumn, $sqlType );
@@ -1427,14 +1474,20 @@ function ceil( $valueOrColumn ): LazyConversionFunction {
     };
 }
 
-function floor( $valueOrColumn ): LazyConversionFunction {
+function floor( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
     return new ValueOrColumnBasedOnDemandFunction( 'FLOOR', $valueOrColumn );
 }
 
-function power( $base, $exponent ): LazyConversionFunction {
+function power(
+    string|int|float|ComparableContent $base,
+    string|int|float|ComparableContent $exponent
+    ): LazyConversionFunction {
     return new class ( $base, $exponent ) extends LazyConversionFunction {
 
-        public function __construct( protected $base, protected $exponent ) {}
+        public function __construct(
+            protected string|int|float|ComparableContent $base,
+            protected string|int|float|ComparableContent $exponent
+            ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $base = __valueOrName( $this->base, $sqlType );
@@ -1444,18 +1497,18 @@ function power( $base, $exponent ): LazyConversionFunction {
     };
 }
 
-function sqrt( $valueOrColumn ): LazyConversionFunction {
+function sqrt( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
     return new ValueOrColumnBasedOnDemandFunction( 'SQRT', $valueOrColumn );
 }
 
-function sin( $valueOrColumn ): LazyConversionFunction {
+function sin( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
     return new ValueOrColumnBasedOnDemandFunction( 'SIN', $valueOrColumn );
 }
 
-function cos( $valueOrColumn ): LazyConversionFunction {
+function cos( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
     return new ValueOrColumnBasedOnDemandFunction( 'COS', $valueOrColumn );
 }
 
-function tan( $valueOrColumn ): LazyConversionFunction {
+function tan( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
     return new ValueOrColumnBasedOnDemandFunction( 'TAN', $valueOrColumn );
 }

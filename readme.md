@@ -200,6 +200,21 @@ $sql = select( 'name', 'email' )->from( 'user' )->where( col( 'id' )->equalTo( 1
 // SELECT `name`, `email` FROM `user` WHERE `id` = 123
 ```
 
+👉 `from()` returns a `From` object with the following methods:
+
+- `innerJoin( string $table ): Join`
+- `leftJoin( string $table ): Join`
+- `rightJoin( string $table ): Join`
+- `fullJoin( string $table ): Join`
+- `crossJoin( string $table ): Join`
+- `naturalJoin( string $table ): Join`
+- `where( Condition ...$conditions ): From`
+- `groupBy( string ...$columns ): From`
+- `having( Condition $condition ): From`
+- `orderBy( string ...$columns ): From`
+- `union( Select $select ): From`
+- `unionDistinct( Select $select ): From`
+
 #### `selectDistinct`
 
 Create a distinct selection. It can receive one or more columns. Examples:
