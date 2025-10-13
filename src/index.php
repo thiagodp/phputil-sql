@@ -35,6 +35,7 @@ interface DBStringable {
     public function toString( SQLType $sqlType = SQLType::NONE ): string;
 }
 
+/** Chainable condition. */
 interface Condition extends DBStringable {
 
     public function and( Condition $other ): Condition;
@@ -92,6 +93,7 @@ class ConditionalOp implements Condition {
         return $leftSide . ' ' . $this->operator . ' ' . $rightSide;
     }
 }
+
 // ----------------------------------------------------------------------------
 // BETWEEN
 // ----------------------------------------------------------------------------
@@ -374,9 +376,12 @@ class AggregateFunction implements DBStringable {
         }
 
         $alias = __asName( $this->alias, $sqlType );
+        if ( $alias != '' ) {
+            $alias = ' AS ' . $alias;
+        }
 
         $dist = $this->distinct ? 'DISTINCT ': '';
-        $f = "{$this->functionName}({$dist}{$valueOrColumn})" . ( $alias != '' ? " AS $alias" : '' );
+        $f = "{$this->functionName}({$dist}{$valueOrColumn})" . $alias;
         return $f;
     }
 
@@ -473,8 +478,7 @@ class From implements DBStringable {
 
     use CanLimit;
 
-    /** @var Condition[] $whereConditions */
-    protected $whereConditions = [];
+    protected ?Condition $whereCondition = null;
 
     /** @var Join[] $joins */
     protected $joins = [];
@@ -531,8 +535,8 @@ class From implements DBStringable {
         return $this->makeJoin( $table, 'NATURAL JOIN' );
     }
 
-    public function where( Condition ...$conditions ): self {
-        $this->whereConditions = $conditions;
+    public function where( Condition $condition ): self {
+        $this->whereCondition = $condition;
         return $this;
     }
 
@@ -579,9 +583,10 @@ class From implements DBStringable {
             $s .= ' ' . $j->toString( $sqlType );
         }
 
-        $where = __conditionsToString( $this->whereConditions, $sqlType );
+        // $where = __conditionsToString( $this->whereCondition, $sqlType );
+        $where = ( $this->whereCondition != null ) ? $this->whereCondition->toString( $sqlType ) : '';
         if ( $where != '' ) {
-            $s .= ' WHERE' . $where;
+            $s .= ' WHERE ' . $where;
         }
 
         $groupByColumns = array_map( fn($c) => __parseColumnAndAlias( $c, $sqlType ), $this->groupByColumns );
@@ -1328,11 +1333,6 @@ function concat(
         /** @var string[]|\phputil\sql\ComparableContent[] */
         protected $other;
 
-        /**
-         * @param string|\phputil\sql\ComparableContent $textOrColumn1
-         * @param string|\phputil\sql\ComparableContent $textOrColumn2
-         * @param string|\phputil\sql\ComparableContent ...$other
-         */
         public function __construct(
             protected string|ComparableContent $textOrColumn1,
             protected string|ComparableContent $textOrColumn2,

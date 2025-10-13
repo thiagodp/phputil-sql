@@ -597,7 +597,7 @@ Documentation soon
     - [x] Joins
     - [x] Sub-queries
     - [x] Limit and Offset
-    - [x] Aggregation functions
+    - [x] Aggregate functions
     - [x] Distinct for selections and aggregation functions
     - [x] Null handling function
     - [x] Common date and time functions
@@ -608,6 +608,11 @@ Documentation soon
         - [x] DateTime values as database strings.
         - [x] Boolean and NULL values.
         - [x] Array values inside `in` expressions.
+    - [ ] Aggregate functions in having clauses
+    - [ ] Aggregate functions in order by clauses
+    - [ ] Simulate certain JOIN clauses
+- [ ] Options for SQL generation
+    - [ ] Add option argument for avoiding escaping names
 - [ ] Insert statement
 - [ ] Update statement
 - [ ] Delete statement
