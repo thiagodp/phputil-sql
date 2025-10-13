@@ -608,8 +608,8 @@ Documentation soon
         - [x] DateTime values as database strings.
         - [x] Boolean and NULL values.
         - [x] Array values inside `in` expressions.
+    - [x] Aggregate functions in order by clauses
     - [ ] Aggregate functions in having clauses
-    - [ ] Aggregate functions in order by clauses
     - [ ] Simulate certain JOIN clauses
 - [ ] Options for SQL generation
     - [ ] Add option argument for avoiding escaping names

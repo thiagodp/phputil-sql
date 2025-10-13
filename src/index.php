@@ -531,6 +531,12 @@ class From implements DBStringable {
         return $this->makeJoin( $table, 'CROSS JOIN' );
     }
 
+    /**
+     * A natural join is **not** supported by SQL Server.
+     *
+     * @param string $table
+     * @return Join
+     */
     public function naturalJoin( string $table ): Join {
         return $this->makeJoin( $table, 'NATURAL JOIN' );
     }
@@ -550,8 +556,9 @@ class From implements DBStringable {
         return $this;
     }
 
-    public function orderBy( string ...$columnNames ): self {
-        $this->columnOrderings = array_map( fn($c) => new ColumnOrdering( $c ), $columnNames );
+    public function orderBy( string|AggregateFunction|ColumnOrdering ...$columns ): self {
+        $toOrdering = fn($c) => is_object( $c ) && $c instanceof ColumnOrdering ? $c : new ColumnOrdering( $c );
+        $this->columnOrderings = array_map( $toOrdering, $columns );
         return $this;
     }
 
@@ -652,17 +659,25 @@ class Join implements DBStringable {
 class ColumnOrdering implements DBStringable {
 
     public function __construct(
-        protected string $column
+        protected string|AggregateFunction $column,
+        protected bool $isDescending = false
     ) {
     }
 
     public function toString( SQLType $sqlType = SQLType::NONE ): string {
 
+        $direction = $this->isDescending ? ' DESC' : ' ASC';
+
+        if ( is_object( $this->column ) ) {
+            return $this->column->toString( $sqlType ) . $direction;
+        }
+
         $pieces = __parseSeparatedValues( $this->column );
         $column = __parseColumnAndAlias( $pieces[ 0 ] ?? '', $sqlType );
-        $direction = strtoupper( $pieces[ 1 ] ?? 'ASC' ) == 'DESC' ? 'DESC' : 'ASC';
-
-        return $column . ' ' . $direction;
+        if ( isset( $pieces[ 1 ] ) ) { // It can have ASC/DESC in the field name
+            $direction = strtoupper( $pieces[ 1 ] ?? 'ASC' ) == 'DESC' ? ' DESC' : ' ASC';
+        }
+        return $column . $direction;
     }
 }
 
@@ -806,7 +821,10 @@ function __parseColumnAndAlias( mixed $column, SQLType $sqlType ): string {
         return (string) $column->content;
     }
 
-    if ( $column instanceof Expression || $column instanceof LazyConversionFunction ) {
+    if ( $column instanceof Expression ||
+        $column instanceof LazyConversionFunction ||
+        $column instanceof AggregateFunction
+    ) {
         return $column->toString( $sqlType );
     }
 
@@ -977,12 +995,14 @@ function wrap( Condition $c ): Condition {
 // UTILITIES
 // ----------------------------------------------------------------------------
 
-function desc( string $column ): string {
-    return $column . ' DESC';
+function desc( string|AggregateFunction $column ): ColumnOrdering {
+    // return $column . ' DESC';
+    return new ColumnOrdering( $column, true );
 }
 
-function asc( string $column ): string {
-    return $column . ' ASC';
+function asc( string|AggregateFunction $column ): ColumnOrdering {
+    // return $column . ' ASC';
+    return new ColumnOrdering( $column, false );
 }
 
 // ----------------------------------------------------------------------------
