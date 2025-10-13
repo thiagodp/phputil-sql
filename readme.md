@@ -215,6 +215,24 @@ $sql = select( 'name', 'email' )->from( 'user' )->where( col( 'id' )->equalTo( 1
 - `union( Select $select ): From`
 - `unionDistinct( Select $select ): From`
 
+Example with `having`:
+
+```php
+echo select( count( 'id' ), 'country' )
+    ->from( 'customer' )
+    ->groupBy( 'country' )
+    ->having( val( count( 'id' ) )->greaterThan( 5 ) )
+    ->orderBy( desc( count( 'id' ) ) )
+    ->endAsString( SQLType::MYSQL );
+
+// SELECT COUNT(`id`), `country`
+// FROM `customer`
+// GROUP BY `country`
+// HAVING COUNT(`id`) > 5
+// ORDER BY COUNT(`id`) DESC
+```
+
+
 #### `selectDistinct`
 
 Create a distinct selection. It can receive one or more columns. Examples:
@@ -609,7 +627,7 @@ Documentation soon
         - [x] Boolean and NULL values.
         - [x] Array values inside `in` expressions.
     - [x] Aggregate functions in order by clauses
-    - [ ] Aggregate functions in having clauses
+    - [x] Aggregate functions in having clauses - by using val()
     - [ ] Simulate certain JOIN clauses
 - [ ] Options for SQL generation
     - [ ] Add option argument for avoiding escaping names

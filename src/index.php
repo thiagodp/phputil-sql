@@ -818,12 +818,17 @@ function __parseColumnAndAlias( mixed $column, SQLType $sqlType ): string {
     }
 
     if ( $column instanceof Value ) {
-        return (string) $column->content;
+        $c = $column->content;
+        if ( ! is_object( $c ) ) {
+            return (string) $c;
+        }
+        $column = $c; // E.g. Aggregate Function
     }
 
     if ( $column instanceof Expression ||
         $column instanceof LazyConversionFunction ||
-        $column instanceof AggregateFunction
+        $column instanceof AggregateFunction ||
+        $column instanceof Column
     ) {
         return $column->toString( $sqlType );
     }
