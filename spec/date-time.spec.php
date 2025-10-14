@@ -27,4 +27,39 @@ describe( 'date and time functions', function() {
 
     } );
 
+    describe( 'addDays', function() {
+
+        it( 'can receive another date function as value', function() {
+            $sql = select( addDays( 'field', diffInDays( '2024-12-31', now() ) ) )->toString( SQLType::MYSQL );
+            expect( $sql )->toBe( "SELECT DATE_ADD(`field`, INTERVAL DATEDIFF(`2024-12-31`, NOW()) DAY)" );
+        } );
+    } );
+
+
+    describe( 'subDays', function() {
+
+        it( 'can receive another date function as value', function() {
+            $sql = select( subDays( 'field', diffInDays( '2024-12-31', now() ) ) )->toString( SQLType::MYSQL );
+            expect( $sql )->toBe( "SELECT DATE_SUB(`field`, INTERVAL DATEDIFF(`2024-12-31`, NOW()) DAY)" );
+        } );
+    } );
+
+
+    describe( 'dateAdd', function() {
+
+        it( 'can receive another date function as value', function() {
+            $sql = select( dateAdd( 'field', diffInDays( '2024-12-31', now() ) ) )->toString( SQLType::MYSQL );
+            expect( $sql )->toBe( "SELECT DATE_ADD(`field`, INTERVAL DATEDIFF(`2024-12-31`, NOW()) DAY)" );
+        } );
+    } );
+
+
+    describe( 'dateSub', function() {
+
+        it( 'can receive another date function as value', function() {
+            $sql = select( dateSub( 'field', diffInDays( '2024-12-31', now() ) ) )->toString( SQLType::MYSQL );
+            expect( $sql )->toBe( "SELECT DATE_SUB(`field`, INTERVAL DATEDIFF(`2024-12-31`, NOW()) DAY)" );
+        } );
+    } );
+
 } );

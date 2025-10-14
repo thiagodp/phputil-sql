@@ -917,7 +917,7 @@ function __toValue(
         return __toValue( $content, $sqlType );
     } else if ( $value instanceof Column ) {
         return __asName( $value->toString( $sqlType ), $sqlType );
-    } else if ( $value instanceof DBStringable ) {
+    } else if ( $value instanceof DBStringable || $value instanceof LazyConversionFunction ) {
         return $value->toString( $sqlType );
     } else if ( $value instanceof DateTimeInterface ) {
         return __toDateString( $value );
@@ -1171,7 +1171,7 @@ function extract(
 function diffInDays(
     string|ComparableContent|LazyConversionFunction $startDate,
     string|ComparableContent|LazyConversionFunction $endDate
-    ): LazyConversionFunction {
+): LazyConversionFunction {
 
     return new class ( $startDate, $endDate ) extends LazyConversionFunction {
 
@@ -1193,15 +1193,15 @@ function diffInDays(
 }
 
 function addDays(
-    string|ComparableContent $dateOrColumn,
-    int|string $value
-    ): LazyConversionFunction {
+    string|ComparableContent|LazyConversionFunction $dateOrColumn,
+    int|string|LazyConversionFunction $value
+): LazyConversionFunction {
 
     return new class ( $dateOrColumn, $value ) extends LazyConversionFunction {
 
         public function __construct(
-            protected string|ComparableContent $dateOrColumn,
-            protected int|string $value
+            protected string|ComparableContent|LazyConversionFunction $dateOrColumn,
+            protected int|string|LazyConversionFunction $value
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
@@ -1215,15 +1215,15 @@ function addDays(
 }
 
 function subDays(
-    string|ComparableContent $dateOrColumn,
-    int|string $value
-    ): LazyConversionFunction {
+    string|ComparableContent|LazyConversionFunction $dateOrColumn,
+    int|string|LazyConversionFunction $value
+): LazyConversionFunction {
 
     return new class ( $dateOrColumn, $value ) extends LazyConversionFunction {
 
         public function __construct(
-            protected string|ComparableContent $dateOrColumn,
-            protected int|string $value
+            protected string|ComparableContent|LazyConversionFunction $dateOrColumn,
+            protected int|string|LazyConversionFunction $value
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
@@ -1237,16 +1237,16 @@ function subDays(
 }
 
 function dateAdd(
-    string|ComparableContent $dateOrColumn,
-    int|string|ComparableContent $value,
+    string|ComparableContent|LazyConversionFunction $dateOrColumn,
+    int|string|ComparableContent|LazyConversionFunction $value,
     string $unit = 'day'
-    ): LazyConversionFunction {
+): LazyConversionFunction {
 
     return new class ( $dateOrColumn, $value, $unit ) extends LazyConversionFunction {
 
         public function __construct(
-            protected string|ComparableContent $dateOrColumn,
-            protected int|string|ComparableContent $value,
+            protected string|ComparableContent|LazyConversionFunction $dateOrColumn,
+            protected int|string|ComparableContent|LazyConversionFunction $value,
             protected string $unit
             ) {}
 
@@ -1266,16 +1266,16 @@ function dateAdd(
 }
 
 function dateSub(
-    string|ComparableContent $dateOrColumn,
-    int|string|ComparableContent $value,
+    string|ComparableContent|LazyConversionFunction $dateOrColumn,
+    int|string|ComparableContent|LazyConversionFunction $value,
     string $unit = 'day'
-    ): LazyConversionFunction {
+): LazyConversionFunction {
 
     return new class ( $dateOrColumn, $value, $unit ) extends LazyConversionFunction {
 
         public function __construct(
-            protected string|ComparableContent $dateOrColumn,
-            protected int|string|ComparableContent $value,
+            protected string|ComparableContent|LazyConversionFunction $dateOrColumn,
+            protected int|string|ComparableContent|LazyConversionFunction $value,
             protected string $unit
             ) {}
 
