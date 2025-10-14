@@ -49,7 +49,6 @@ interface Condition extends DBStringable {
 // Conditional Operators
 // ----------------------------------------------------------------------------
 
-// NEW
 class ConditionalOp implements Condition {
 
     public function __construct(
@@ -933,7 +932,9 @@ function __toValue(
 }
 
 function __valueOrName( mixed $str, SQLType $sqlType ): string {
-    if ( $str instanceof Value ) {
+    if ( $str instanceof LazyConversionFunction ) {
+        $str = $str->toString( $sqlType );
+    } else if ( $str instanceof Value ) {
         $str = __toValue( $str->content, $sqlType );
     } else if ( is_string( $str ) ) {
         $str = __asName( $str, $sqlType );
@@ -1165,15 +1166,15 @@ function extract( Extract $unit, string|ComparableContent $dateOrColumn = '' ): 
 }
 
 function diffInDays(
-    string|ComparableContent $startDate,
-    string|ComparableContent $endDate
+    string|ComparableContent|LazyConversionFunction $startDate,
+    string|ComparableContent|LazyConversionFunction $endDate
     ): LazyConversionFunction {
 
     return new class ( $startDate, $endDate ) extends LazyConversionFunction {
 
         public function __construct(
-            protected string|ComparableContent $startDate,
-            protected string|ComparableContent $endDate
+            protected string|ComparableContent|LazyConversionFunction $startDate,
+            protected string|ComparableContent|LazyConversionFunction $endDate
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
