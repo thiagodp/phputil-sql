@@ -1,6 +1,6 @@
 # phputil/sql
 
-> 🪄 The best SQL query builder for PHP
+> 🪄 An amazing SQL query builder for PHP
 
 ⚠️ **Work-In-Progress!**
 
@@ -12,6 +12,7 @@ Features:
 - Support to complex queries.
 - Include utility functions for [aggregation](#aggregate-functions), [string](#string-functions), [date and time](#date-and-time-functions), and [math](#math-functions).
 
+See the [Roadmap](#roadmap)
 
 ## Install
 
@@ -70,7 +71,7 @@ echo select( 'colum1', 'column2' )->from( 'example' )->end();
 // SELECT [column1], [column2] FROM [example]
 ```
 
-Okay, let's build a query a little more complex.
+Okay, let's build a more complex query.
 
 ```php
 require_once 'vendor/autoload.php';
@@ -82,18 +83,18 @@ SQL::useMySQL();
 // Say, all products with price between 100 and 999.999, quantity above 0,
 // ordered by SKU and with a paginated result
 
-$sql = select( 'p.sku', 'p.description', 'p.quantity', 'u.name AS unit', 'p.price' )->
-    from( 'product p' )->
-    leftJoin( 'unit u' )->on(
-        col( 'u.id' )->equalTo( col( 'p.unit_id' ) )
-    )->
-    where(
-        col( 'p.price' )->between( 100.00, 999.99 )->and( col( 'p.quantity' )->greaterThan( 0 ) )
-    )->
-    orderBy( 'p.sku' )->
-    limit( 10 )-> // limit to 10 rows
-    offset( 20 )-> // skip the first 20 rows (e.g., 3rd page in 10-row pagination)
-    end();
+$sql = select( 'p.sku', 'p.description', 'p.quantity', 'u.name AS unit', 'p.price' )
+    ->from( 'product p' )
+    ->leftJoin( 'unit u' )
+        ->on( col( 'u.id' )->equalTo( col( 'p.unit_id' ) ) )
+    ->where(
+        col( 'p.price' )->between( 100.00, 999.99 )
+        ->and( col( 'p.quantity' )->greaterThan( 0 ) )
+    )
+    ->orderBy( 'p.sku' )
+    ->limit( 10 ) // limit to 10 rows
+    ->offset( 20 ) // skip the first 20 rows (e.g., 3rd page in 10-row pagination)
+    ->end();
 
 echo $sql, PHP_EOL;
 
@@ -196,7 +197,10 @@ Create a selection. Examples:
 $sql = select()->from( 'user' )->end();
 // SELECT * FROM `user`
 
-$sql = select( 'name', 'email' )->from( 'user' )->where( col( 'id' )->equalTo( 123 ) )->end();
+$sql = select( 'name', 'email' )
+    ->from( 'user' )
+    ->where( col( 'id' )->equalTo( 123 ) )
+    ->end();
 // SELECT `name`, `email` FROM `user` WHERE `id` = 123
 ```
 
@@ -238,7 +242,10 @@ echo select( count( 'id' ), 'country' )
 Create a distinct selection. It can receive one or more columns. Examples:
 
 ```php
-$sql = selectDistinct( 'name' )->from( 'customer' )->where( col( 'name' )->like( 'John%' ) )->end();
+$sql = selectDistinct( 'name' )
+    ->from( 'customer' )
+    ->where( col( 'name' )->like( 'John%' ) )
+    ->end();
 // SELECT DISTINCT `name` FROM `customer` WHERE `name` LIKE 'John%'
 ```
 
@@ -332,14 +339,17 @@ $sql = select( 'total' )->from( 'sale' )->where( col( 'id' )->equalTo( param( 'i
 `wrap` add parenthesis around a condition. Example:
 
 ```php
-$sql = select( 'id' )->from( 'sale' )->where(
-    col( 'total' )->greaterThanOrEqualTo( 100 )->
-    and( wrap(
-        col( 'customer_id' )->equalTo( 1234 )->
-        or( col( 'customer_id' )->equalTo( 4567 ) )
-    ) )
-)->end();
-// SELECT `id` FROM `sale` WHERE `total` >= 100 AND (`customer_id` = 1234 OR `customer_id` = 4567)
+$sql = select( 'id' )->from( 'sale' )
+    ->where(
+        col( 'total' )->greaterThanOrEqualTo( 100 )
+        ->and( wrap(
+            col( 'customer_id' )->equalTo( 1234 )
+            ->or( col( 'customer_id' )->equalTo( 4567 ) )
+        ) )
+    )
+    ->end();
+// SELECT `id` FROM `sale`
+// WHERE `total` >= 100 AND (`customer_id` = 1234 OR `customer_id` = 4567)
 ```
 
 
@@ -372,17 +382,17 @@ Aggregate functions can receive an alias as a second argument or use the method 
 $sql = select(
         'date',
         sum( 'price * quantity' )->as( 'subtotal' ), // 👈
-    )->from( 'sale' )->
-    groupBy( 'date' )->
-    end();
+    )->from( 'sale' )
+    ->groupBy( 'date' )
+    ->end();
 
 // Alias as the second argument
 $sql = select(
         'date',
         sum( 'price * quantity', 'subtotal' ), // 👈
-    )->from( 'sale' )->
-    groupBy( 'date' )->
-    end();
+    )->from( 'sale' )
+    ->groupBy( 'date' )
+    ->end();
 ```
 
 #### `count`
@@ -543,7 +553,7 @@ $sql = select( upper('name') )->from( 'example' )->end();
 `lower( $textOrColumn )` converts a text or column to lowercase. Example:
 
 ```php
-$sql = select( lower('name') )->from( 'customer' )->end();
+$sql = select( lower( 'name' ) )->from( 'customer' )->end();
 // MySQL        : SELECT LOWER(`name`) FROM `customer`
 // PostgreSQL   : SELECT LOWER("name") FROM "customer"
 // SQLite       : SELECT LOWER(`name`) FROM `customer`
@@ -607,7 +617,6 @@ Documentation soon
 Documentation soon
 
 
-
 ## Roadmap
 
 - [x] Select statement
@@ -630,12 +639,12 @@ Documentation soon
     - [x] Aggregate functions in having clauses - by using val()
     - [ ] Simulate certain JOIN clauses
 - [ ] Options for SQL generation
-    - [ ] Add option argument for avoiding escaping names
+    - [ ] Add argument for avoiding escaping names
 - [ ] Insert statement
 - [ ] Update statement
 - [ ] Delete statement
 
-👉 Contribute to include another database or feature by opening an [Issue](https://github.com/thiagodp/phputil-sql/issues) or a [Pull Request](://github.com/thiagodp/phputil-sql/pulls).
+👉 Contribute with the project by opening an [Issue](https://github.com/thiagodp/phputil-sql/issues) or making a [Pull Request](://github.com/thiagodp/phputil-sql/pulls).
 
 
 ## License
