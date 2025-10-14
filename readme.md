@@ -348,7 +348,7 @@ $sql = select( 'total' )->from( 'sale' )->where( col( 'id' )->equalTo( param( 'i
 
 #### `wrap`
 
-`wrap` add parenthesis around a condition. Example:
+`wrap` adds parenthesis around a condition. Example:
 
 ```php
 $sql = select( 'id' )->from( 'sale' )
@@ -502,10 +502,15 @@ $sql = select( time() );
 `extract()` can extract a piece of a column or a date/time/timestamp value. Examples:
 
 ```php
-$sql = select( extract( Extract::DAY, 'col1' ) )->from( 'example' )->endAsString( SQLType::MYSQL );
+use phputil\sql\{SQLType, Extract};
+use function phputil\sql\{select, extract};
+
+$sql = select( extract( Extract::DAY, 'col1' ) )
+    ->from( 'example' )->endAsString( SQLType::MYSQL );
 // SELECT EXTRACT(DAY FROM `col1`) FROM `example`
 
-$sql = select( extract( Extract::DAY, val( '2025-12-31' ) ) )->toString( SQLType::MYSQL );
+$sql = select( extract( Extract::DAY, val( '2025-12-31' ) ) )
+    ->toString( SQLType::MYSQL );
 // SELECT EXTRACT(DAY FROM '2025-12-31')
 ```
 
@@ -528,9 +533,19 @@ enum Extract {
 }
 ```
 
-
 #### `diffInDays`
-Documentation soon
+
+`diffInDays` returns the difference in days from two dates/timestamps.
+
+```php
+echo select( diffInDays( val( '31-12-2024' ), now() ) )
+    ->toString( SQLType:MYSQL );
+// SELECT DATEDIFF('31-12-2024', NOW())
+
+echo select( diffInDays( 'birthdate', now() ) )->from( 'example' )
+    ->toString( SQLType:MYSQL );
+// SELECT DATEDIFF(`birthdate`, NOW()) FROM `example`
+```
 
 #### `addDays`
 Documentation soon
@@ -552,12 +567,8 @@ Documentation soon
 `upper( $textOrColumn )` converts a text or column to uppercase. Example:
 
 ```php
-$sql = select( upper('name') )->from( 'example' )->end();
-// MySQL        : SELECT UPPER(`name`) FROM `customer`
-// PostgreSQL   : SELECT UPPER("name") FROM "customer"
-// SQLite       : SELECT UPPER(`name`) FROM `customer`
-// Oracle       : SELECT UPPER("name") FROM "customer"
-// SQLServer    : SELECT UPPER([name]) FROM [customer]
+$sql = select( upper( 'name' ) )->from( 'customer' )->end();
+//  SELECT UPPER(`name`) FROM `customer`
 ```
 
 #### `lower`
@@ -566,11 +577,7 @@ $sql = select( upper('name') )->from( 'example' )->end();
 
 ```php
 $sql = select( lower( 'name' ) )->from( 'customer' )->end();
-// MySQL        : SELECT LOWER(`name`) FROM `customer`
-// PostgreSQL   : SELECT LOWER("name") FROM "customer"
-// SQLite       : SELECT LOWER(`name`) FROM `customer`
-// Oracle       : SELECT LOWER("name") FROM "customer"
-// SQLServer    : SELECT LOWER([name]) FROM [customer]
+// SELECT LOWER(`name`) FROM `customer`
 ```
 
 #### `substring`
@@ -589,13 +596,15 @@ Documentation soon
 
 #### `ifNull`
 
-`ifNull( $valueOrColumm, $valueOrColumnIfNull )` creates a fallback for a column value when it is null. Example:
+`ifNull( $valueOrColumm, $valueOrColumnIfNull )` creates a fallback value for a column when it is null. Examples:
 
 ```php
-$sql = select( 'name', ifNull( 'nickname', val( 'anonymous' ) ) )->from( 'user' )->end();
+$sql = select( 'name', ifNull( 'nickname', val( 'anonymous' ) ) )
+    ->from( 'user' )->end();
 // SELECT `name`, COALESCE(`nickname`, 'anonymous') FROM `user`
 
-$sql = select( 'name', ifNull( 'nickname', 'name' ) )->from( 'user' )->end();
+$sql = select( 'name', ifNull( 'nickname', 'name' ) )
+    ->from( 'user' )->end();
 // SELECT `name`, COALESCE(`nickname`, `name`) FROM `user`
 ```
 
@@ -656,7 +665,7 @@ Documentation soon
 - [ ] Update statement
 - [ ] Delete statement
 
-👉 Contribute with the project by opening an [Issue](https://github.com/thiagodp/phputil-sql/issues) or making a [Pull Request](://github.com/thiagodp/phputil-sql/pulls).
+👉 Contribute by opening an [Issue](https://github.com/thiagodp/phputil-sql/issues) or making a [Pull Request](https://github.com/thiagodp/phputil-sql/pulls).
 
 
 ## License

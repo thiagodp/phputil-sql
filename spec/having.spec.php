@@ -10,7 +10,7 @@ describe( 'having', function() {
         expect( $r )->toBe( 'SELECT 1 FROM foo GROUP BY 1 HAVING 1 > 0' );
     } );
 
-    it( 'accepts a aggregate function', function() {
+    it( 'accepts an aggregate function', function() {
         $r = select( 1 )->from( 'foo' )->groupBy( 1 )->having(
             val( count( 'foo' ) )->greaterThan( val( count( 1 ) ) )
         )->endAsString( SQLType::MYSQL );
