@@ -1,6 +1,6 @@
 {
     "name": "phputil/sql",
-    "description": "An amazing SQL query builder for PHP",
+    "description": "Probably the best SQL query builder for PHP",
     "type": "library",
     "license": "MIT",
     "authors": [

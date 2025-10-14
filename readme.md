@@ -1,18 +1,29 @@
 # phputil/sql
 
-> 🪄 An amazing SQL query builder for PHP
+> 🪄 Probably the best SQL query builder for PHP
 
-⚠️ **Work-In-Progress!**
+⚠️ **Work-In-Progress!** ⚠️
 
 Features:
-- _Cross-database support with the same API_: MySQL, PostgreSQL, SQLite, Oracle, and SQLServer.
-- No database or external dependencies.
-- Fluid, typed, SQL-like syntax.
-- Automatically quote columns and table names (e.g. backticks in MySQL).
-- Support to complex queries.
-- Include utility functions for [aggregation](#aggregate-functions), [string](#string-functions), [date and time](#date-and-time-functions), and [math](#math-functions).
+- 🎯 **Cross-database SQL with the same API**: MySQL, PostgreSQL, SQLite, Oracle, and SQLServer.
+- 🚀 No database or external dependencies - not even [PDO](https://www.php.net/manual/en/book.pdo.php).
+- 🔥 Fluid, typed, SQL-like syntax.
+- 🛟 Automatically quote columns and table names (e.g. backticks in MySQL).
+- 🪢 Support to complex queries.
+- 🛠️ Include utility functions for [aggregation](#aggregate-functions), [string](#string-functions), [date and time](#date-and-time-functions), and [math](#math-functions).
 
 See the [Roadmap](#roadmap)
+
+
+## Use cases
+
+This library is particularly useful for:
+- Creating queries that can be used with different relational databases without the need of (bloated) ORM frameworks.
+  - Migration is usually achieved by changing a single line of code in your codebase!
+- Writing readable, typo-free SQL statements.
+- Building complex WHERE clauses (e.g. for filtering content) without the need of concatenating strings.
+- Migrating data from different databases.
+
 
 ## Install
 
@@ -25,7 +36,7 @@ composer require phputil/sql
 
 ## Basic Usage
 
-ℹ️ Use the function `select()` for creating a query. Then use the method `endAsString( SQLType $sqlType = SQLType::NONE ): string` for obtaining the SQL for a certain type.
+1️⃣ Use the function `select()` for creating a query. Then use the method `endAsString( SQLType $sqlType = SQLType::NONE ): string` for obtaining the SQL for a certain type.
 
 
 ```php
@@ -46,7 +57,7 @@ echo select( 'colum1', 'column2' )->from( 'example' )->endAsString( SQLType::SQL
 // SELECT [column1], [column2] FROM [example]
 ```
 
-ℹ️ By using the method `end()`, instead of `endAsString`, the desired database/SQL type is obtained from the static attribute `SQL::$type`:
+2️⃣ By using the method `end()`, instead of `endAsString`, the desired database/SQL type is obtained from the static attribute `SQL::$type`:
 
 ```php
 require_once 'vendor/autoload.php';
@@ -71,7 +82,7 @@ echo select( 'colum1', 'column2' )->from( 'example' )->end();
 // SELECT [column1], [column2] FROM [example]
 ```
 
-Okay, let's build a more complex query.
+🆒 Okay, let's build a more complex query.
 
 ```php
 require_once 'vendor/autoload.php';
@@ -162,6 +173,7 @@ use phputil\sql\{SQLType};
 use function phputil\sql\{select};
 
 echo select()->from( 'example' )->endAsString( SQLType::NONE );
+// SELECT * FROM example
 ```
 
 #### `SQL`
