@@ -20,6 +20,11 @@ describe( 'date and time functions', function() {
             expect( $sql )->toBe( "SELECT EXTRACT(DAY FROM '2025-12-31')" );
         } );
 
+        it( 'can receive another date function', function() {
+            $sql = select( extract( Extract::DAY, now() ) )->toString( SQLType::MYSQL );
+            expect( $sql )->toBe( "SELECT EXTRACT(DAY FROM NOW())" );
+        } );
+
     } );
 
 } );

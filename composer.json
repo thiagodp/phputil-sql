@@ -19,6 +19,7 @@
     },
     "scripts": {
         "check": "phpstan",
-        "test": "kahlan --reporter=tree"
+        "test": "kahlan --reporter=tree",
+        "cov": "kahlan --coverage=4"
     }
 }

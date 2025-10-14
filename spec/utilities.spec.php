@@ -1,8 +1,6 @@
 <?php
 namespace phputil\sql;
 
-require_once __DIR__ . '/../vendor/autoload.php';
-
 describe( 'utilities', function() {
 
     describe( 'col', function() {

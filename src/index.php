@@ -1116,12 +1116,12 @@ enum Extract {
 
 class ExtractFunction extends LazyConversionFunction {
 
-    protected string|ComparableContent $dateOrColumn;
+    protected string|ComparableContent|LazyConversionFunction $dateOrColumn;
 
     public function __construct( protected Extract $unit ) {}
 
 
-    public function from( string|ComparableContent $dateOrColumn ): ExtractFunction {
+    public function from( string|ComparableContent|LazyConversionFunction $dateOrColumn ): ExtractFunction {
         $this->dateOrColumn = $dateOrColumn;
         return $this;
     }
@@ -1158,7 +1158,10 @@ class ExtractFunction extends LazyConversionFunction {
 }
 
 
-function extract( Extract $unit, string|ComparableContent $dateOrColumn = '' ): ExtractFunction {
+function extract(
+    Extract $unit,
+    string|ComparableContent|LazyConversionFunction $dateOrColumn = ''
+): ExtractFunction {
     if ( is_string( $dateOrColumn ) && empty( $dateOrColumn ) ) {
         return ( new ExtractFunction( $unit ) )->from( val( '' ) );
     }

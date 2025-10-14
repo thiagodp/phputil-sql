@@ -1,11 +1,19 @@
 <?php
 namespace phputil\sql;
 
-use DateTime;
-
-require_once __DIR__ . '/../vendor/autoload.php';
+use \DateTime;
 
 describe( 'internal', function() {
+
+    describe( '#__getQuoteCharacters', function() {
+
+        it( 'returns a pair of empty strings by default', function() {
+            [ $first, $second ] = __getQuoteCharacters();
+            expect( $first )->toBe( '' );
+            expect( $second )->toBe( '' );
+        } );
+
+    } );
 
     describe( '#__addApostropheIfNeeded', function() {
 
