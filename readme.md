@@ -137,6 +137,32 @@ echo $sql->toString( SQLType::ORACLE );
 // FETCH NEXT 10 ROWS ONLY
 ```
 
+🤔 Right, but what about SQL Injection?
+
+🆗 Just use parameters - with [`param()`](#param) - for any input values.
+
+👉 Your database must be able to handle parameters in SQL commands. Example with PDO:
+
+```php
+// Getting an optional filter from the URL: /products?sku=123456
+$sku = htmlspecialchars( $_GET[ 'sku' ] ?? '' );
+
+// Example with named parameters using PDO
+$sql = select( 'sku', 'description', 'price' )->from( 'product' );
+
+if ( ! empty( $sku ) ) {
+    $sql = $sql->where(
+        col( 'sku' )->equal( param( 'sku' ) ) // 👈 Query parameter
+    );
+}
+
+$pdo = new PDO( 'sqlite:example.db' );
+$pdoStatement = $pdo->prepare( $sql->end() );
+$pdoStatement->execute( [ 'sku' => $sku ] ); // 👈 Value only here
+// ...
+```
+
+
 ➡️ See more examples in the [API section](#api).
 
 
@@ -151,6 +177,8 @@ Index:
     - [`select`](#select), [`selectDistinct`](#selectdistinct), [`col`](#col), [`val`](#val), [`param`](#param), [`wrap`](#wrap), [`not`](#not)
 - [Ordering utilities](#ordering-utilities)
     - [`asc`](#asc), [`desc`](#desc)
+- [Logic utilities](#logic-utilities)
+    - [`andAll`](#andall), [`orAll`](#orall)
 - [Date and time functions](#date-and-time-functions)
     - [`now`](#now), [`date`](#date), [`time`](#time), [`extract`](#extract), [`diffInDays`](#diffindays), [`addDays`](#adddays), [`subDays`](#subdays), [`dateAdd`](#dateadd), [`dateSub`](#datesub)
 - [String functions](#string-functions)
@@ -293,10 +321,10 @@ $sql = select( 'id' )->from( 'sale' )->where( col( 'customer_id' )->in(
  - `lessThanOrEqualTo( $x )` for `<=`
  - `greaterThan( $x )` for `>`
  - `greaterThanOrEqualTo( $x )` for `>=`
- - `like( $text )` for `LIKE`
- - `startWith( $text )` for `LIKE` with `%` at the beginning of the value
- - `endWith( $text )` for `LIKE` with `%` at the end of the value
- - `contain( $text )` for `LIKE` with `%` around the value
+ - `like( $value )` for `LIKE`
+ - `startWith( $value )` for `LIKE` with `%` at the beginning of the value
+ - `endWith( $value )` for `LIKE` with `%` at the end of the value
+ - `contain( $value )` for `LIKE` with `%` around the value
  - `between( $min, $max )` for `BETWEEN` with a minimum and a maximum value
  - `in( $selectionOrArray )` for a sub select statement or an array of values
  - `isNull()` for `IS NULL`
@@ -305,7 +333,7 @@ $sql = select( 'id' )->from( 'sale' )->where( col( 'customer_id' )->in(
  - `isFalse()` for `IS FALSE`
 
 ℹ️ **Notes**:
-- Methods `startWith`, `endWith`, and `contain` produce a `LIKE` expression that adds `%` to the receive value.
+- Methods `startWith`, `endWith`, and `contain` produce a `LIKE` expression that adds `%` to the receive value. However, when an anonymous (`?`) or a named (`:name`) parameter is received by them, **they will not add `%`**, and you must add `%` manually to the parameter values.
 - In Oracle databases, the methods `isTrue()` and `isFalse()` are supported from Oracle version `23ai`. In older versions, you can use `equalTo(1)` and `equalTo(0)` respectively, for the same results.
 
 👉 `col` can also be used for creating aliases, with the `as` method. For instance, these three examples are equivalent:
@@ -377,6 +405,31 @@ $sql = select( 'name' )->from( 'customer' )
 // WHERE NOT(`name` LIKE '% % %')
 ```
 
+### Logic utilities
+
+These are especially useful for creating a condition dynamically.
+
+#### `andAll`
+
+`andAll()` concatenates all the received conditions with the AND operator. Example:
+
+```php
+$condition = andAll(
+    col( 'description' )->startWith( 'Mouse' ),
+    col( 'price' )->lessThanOrEqualTo( 300.00 )
+);
+```
+
+#### `orAll`
+
+`orAll()` concatenates all the received conditions with the OR operator. Example:
+
+```php
+$condition = orAll(
+    col( 'description' )->startWith( 'Mouse' ),
+    col( 'sku' )->contain( 'MZ' )
+);
+```
 
 ### Ordering utilities
 
@@ -649,7 +702,6 @@ Documentation soon
 
 #### `tan`
 Documentation soon
-
 
 ## Roadmap
 

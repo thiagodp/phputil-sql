@@ -202,16 +202,60 @@ class ComparableContent implements DBStringable {
         );
     }
 
-    public function startWith( string $rightSide ): Condition {
-        return $this->like( $rightSide . '%' );
+    protected function isParameter( string $value ): bool {
+
+        // $value = is_string( $v ) ? $v : (string) $v->content;
+
+        if ( $value === '?' ) {
+            return true;
+        }
+        // Named parameter
+        return strpos( $value, ':' ) === 0 &&
+            ctype_alpha( substr( $value, 1, 1 ) ); // second char is alpha
     }
 
-    public function endWith( string $rightSide ): Condition {
-        return $this->like( '%' . $rightSide );
+    protected function makeSpecialLike(
+        string|ComparableContent|Value $rightSide,
+        bool $addToTheBeginning,
+        bool $addToTheEnd,
+    ): Condition {
+
+        $isComparable = ! is_string( $rightSide );
+        $value = $isComparable ? __toValue( $rightSide ) : $rightSide;
+
+        if ( $this->isParameter( $value ) ) {
+            return $this->like( $rightSide );
+        }
+
+        if ( $addToTheEnd && ! str_ends_with( $value, '%' ) ) {
+            if ( $isComparable ) {
+                $rightSide->content .= '%';
+            } else {
+                $rightSide .= '%';
+            }
+        }
+
+        if ( $addToTheBeginning && ! str_starts_with( $value, '%' ) ) {
+            if ( $isComparable ) {
+                $rightSide->content = '%' . $rightSide->content;
+            } else {
+                $rightSide = '%' . $rightSide;
+            }
+        }
+
+        return $this->like( $rightSide );
     }
 
-    public function contain( string $rightSide ): Condition {
-        return $this->like( '%' . $rightSide . '%' );
+    public function startWith( string|ComparableContent|Value $rightSide ): Condition {
+        return $this->makeSpecialLike( $rightSide, false, true );
+    }
+
+    public function endWith( string|ComparableContent|Value $rightSide ): Condition {
+        return $this->makeSpecialLike( $rightSide, true, false );
+    }
+
+    public function contain( string|ComparableContent|Value $rightSide ): Condition {
+        return $this->makeSpecialLike( $rightSide, true, true );
     }
 
     public function between( mixed $min, mixed $max ): Condition {
@@ -1021,6 +1065,33 @@ function desc( string|AggregateFunction $column ): ColumnOrdering {
 function asc( string|AggregateFunction $column ): ColumnOrdering {
     // return $column . ' ASC';
     return new ColumnOrdering( $column, false );
+}
+
+function andAll( Condition $first, Condition ...$others ): Condition {
+    return __joinConditions( true, ...[ $first, ...$others ] );
+}
+
+function orAll( Condition $first, Condition ...$others ): Condition {
+    return __joinConditions( false, ...[ $first, ...$others ] );
+}
+
+function __joinConditions(
+    bool $isAnd,
+    Condition $first,
+    Condition ...$others
+): Condition {
+    $new = $first;
+    $max = \count( $others );
+    $i = 0;
+    while ( $i < $max ) {
+        if ( $isAnd ) {
+            $new = $new->and( $others[ $i ] );
+        } else {
+            $new = $new->or( $others[ $i ] );
+        }
+        $i++;
+    }
+    return $new;
 }
 
 // ----------------------------------------------------------------------------

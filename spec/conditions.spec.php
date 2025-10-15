@@ -158,4 +158,63 @@ describe( 'conditions', function() {
 
     } );
 
+
+    describe( 'startWith', function() {
+
+        it( 'adds % to the end of a value', function() {
+            $r = col( 'a' )->startWith( 'A' )->toString();
+            expect( $r )->toBe( "a LIKE 'A%'" );
+        } );
+
+        it( 'does not add % to the end of an anonymous parameter', function() {
+            $r = col( 'a' )->startWith( param() )->toString();
+            expect( $r )->toBe( "a LIKE ?" );
+        } );
+
+        it( 'does not add % to the end of a named parameter', function() {
+            $r = col( 'a' )->startWith( param( 'a' ) )->toString();
+            expect( $r )->toBe( "a LIKE :a" );
+        } );
+
+    } );
+
+
+    describe( 'endWith', function() {
+
+        it( 'adds % to the beginning of a value', function() {
+            $r = col( 'a' )->endWith( 'A' )->toString();
+            expect( $r )->toBe( "a LIKE '%A'" );
+        } );
+
+        it( 'does not add % to the beginning of an anonymous parameter', function() {
+            $r = col( 'a' )->endWith( param() )->toString();
+            expect( $r )->toBe( "a LIKE ?" );
+        } );
+
+        it( 'does not add % to the beginning of a named parameter', function() {
+            $r = col( 'a' )->endWith( param( 'a' ) )->toString();
+            expect( $r )->toBe( "a LIKE :a" );
+        } );
+    } );
+
+
+    describe( 'contain', function() {
+
+        it( 'adds % around a value', function() {
+            $r = col( 'a' )->contain( 'A' )->toString();
+            expect( $r )->toBe( "a LIKE '%A%'" );
+        } );
+
+        it( 'does not add % around an anonymous parameter', function() {
+            $r = col( 'a' )->contain( param() )->toString();
+            expect( $r )->toBe( "a LIKE ?" );
+        } );
+
+        it( 'does not add % around a named parameter', function() {
+            $r = col( 'a' )->contain( param( 'a' ) )->toString();
+            expect( $r )->toBe( "a LIKE :a" );
+        } );
+
+    } );
+
 } );
