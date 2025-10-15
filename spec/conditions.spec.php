@@ -148,4 +148,14 @@ describe( 'conditions', function() {
 
     } );
 
+
+    describe( 'not', function() {
+
+        it( 'accepts a condition', function() {
+            $r = not( col( 'a' )->equalTo( 10 ) )->toString();
+            expect( $r )->toBe( 'NOT (a = 10)' );
+        } );
+
+    } );
+
 } );

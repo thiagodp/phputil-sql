@@ -148,7 +148,7 @@ Index:
 - [Types](#types)
     - [`SQL`](#sql), [`SQLType`](#sqltype)
 - [Basic functions](#basic-functions)
-    - [`select`](#select), [`selectDistinct`](#selectdistinct), [`col`](#col), [`val`](#val), [`param`](#param), [`wrap`](#wrap)
+    - [`select`](#select), [`selectDistinct`](#selectdistinct), [`col`](#col), [`val`](#val), [`param`](#param), [`wrap`](#wrap), [`not`](#not)
 - [Ordering utilities](#ordering-utilities)
     - [`asc`](#asc), [`desc`](#desc)
 - [Date and time functions](#date-and-time-functions)
@@ -359,10 +359,22 @@ $sql = select( 'id' )->from( 'sale' )
             col( 'customer_id' )->equalTo( 1234 )
             ->or( col( 'customer_id' )->equalTo( 4567 ) )
         ) )
-    )
-    ->end();
+    )->end();
 // SELECT `id` FROM `sale`
 // WHERE `total` >= 100 AND (`customer_id` = 1234 OR `customer_id` = 4567)
+```
+
+#### `not`
+
+`not` negates a condition. Example:
+
+```php
+$sql = select( 'name' )->from( 'customer' )
+    ->where(
+        not( col( 'name' )->like( '% % %' ) )
+    )->end();
+// SELECT `name` FROM `customer`
+// WHERE NOT(`name` LIKE '% % %')
 ```
 
 

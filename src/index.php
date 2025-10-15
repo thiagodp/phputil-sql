@@ -749,12 +749,13 @@ trait CanLimit {
 class ConditionWrapper implements Condition {
 
     public function __construct(
-        protected Condition $condition
+        protected Condition $condition,
+        protected string $prefix = ''
     ) {
     }
 
     public function toString( SQLType $sqlType = SQLType::NONE ): string {
-        return '('. $this->condition->toString( $sqlType ) . ')';
+        return $this->prefix . '('. $this->condition->toString( $sqlType ) . ')';
     }
 
     public function and( Condition $other ): Condition {
@@ -1004,9 +1005,9 @@ function wrap( Condition $c ): Condition {
     return new ConditionWrapper( $c );
 }
 
-// function alias( string $column, string $alias ): string {
-//     return "$column AS $alias";
-// }
+function not( Condition $c ): Condition {
+    return new ConditionWrapper( $c, 'NOT ' );
+}
 
 // ----------------------------------------------------------------------------
 // UTILITIES
