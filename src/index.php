@@ -479,6 +479,8 @@ class From implements DBStringable {
 
     protected ?Condition $whereCondition = null;
 
+    protected ?Select $whereExistsSelect = null;
+
     /** @var Join[] $joins */
     protected $joins = [];
 
@@ -545,6 +547,11 @@ class From implements DBStringable {
         return $this;
     }
 
+    public function whereExists( Select $select ): self {
+        $this->whereExistsSelect = $select;
+        return $this;
+    }
+
     public function groupBy( string ...$columns ): self {
         $this->groupByColumns = $columns;
         return $this;
@@ -589,10 +596,14 @@ class From implements DBStringable {
             $s .= ' ' . $j->toString( $sqlType );
         }
 
-        // $where = __conditionsToString( $this->whereCondition, $sqlType );
         $where = ( $this->whereCondition != null ) ? $this->whereCondition->toString( $sqlType ) : '';
         if ( $where != '' ) {
             $s .= ' WHERE ' . $where;
+        }
+
+        $whereExists = ( $this->whereExistsSelect != null ) ? $this->whereExistsSelect->toString( $sqlType ) : '';
+        if ( $whereExists != '' ) {
+            $s .= ' WHERE EXISTS (' . $whereExists . ')';
         }
 
         $groupByColumns = array_map( fn($c) => __parseColumnAndAlias( $c, $sqlType ), $this->groupByColumns );

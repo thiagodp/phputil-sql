@@ -224,7 +224,8 @@ $sql = select( 'name', 'email' )
 - `fullJoin( string $table ): Join`
 - `crossJoin( string $table ): Join`
 - `naturalJoin( string $table ): Join`
-- `where( Condition ...$conditions ): From`
+- `where( Condition $condition ): From`
+- `whereExists( Select $select ): From`
 - `groupBy( string ...$columns ): From`
 - `having( Condition $condition ): From`
 - `orderBy( string ...$columns ): From`
