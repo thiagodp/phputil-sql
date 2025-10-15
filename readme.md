@@ -152,7 +152,7 @@ $sql = select( 'sku', 'description', 'price' )->from( 'product' );
 
 if ( ! empty( $sku ) ) {
     $sql = $sql->where(
-        col( 'sku' )->equal( param( 'sku' ) ) // 👈 Query parameter
+        col( 'sku' )->equal( param( 'sku' ) ) // 👈 Named parameter
     );
 }
 
@@ -175,10 +175,10 @@ Index:
     - [`SQL`](#sql), [`SQLType`](#sqltype)
 - [Basic functions](#basic-functions)
     - [`select`](#select), [`selectDistinct`](#selectdistinct), [`col`](#col), [`val`](#val), [`param`](#param), [`wrap`](#wrap), [`not`](#not)
-- [Ordering utilities](#ordering-utilities)
-    - [`asc`](#asc), [`desc`](#desc)
 - [Logic utilities](#logic-utilities)
     - [`andAll`](#andall), [`orAll`](#orall)
+- [Ordering utilities](#ordering-utilities)
+    - [`asc`](#asc), [`desc`](#desc)
 - [Date and time functions](#date-and-time-functions)
     - [`now`](#now), [`date`](#date), [`time`](#time), [`extract`](#extract), [`diffInDays`](#diffindays), [`addDays`](#adddays), [`subDays`](#subdays), [`dateAdd`](#dateadd), [`dateSub`](#datesub)
 - [String functions](#string-functions)
@@ -407,7 +407,7 @@ $sql = select( 'name' )->from( 'customer' )
 
 ### Logic utilities
 
-These are especially useful for creating a condition dynamically.
+These are especially useful for creating a WHERE condition that unites a bunch of other conditions with the same logic operator.
 
 #### `andAll`
 
@@ -418,7 +418,13 @@ $condition = andAll(
     col( 'description' )->startWith( 'Mouse' ),
     col( 'price' )->lessThanOrEqualTo( 300.00 )
 );
+
+$sql = select()->from( 'product' )->where( $condition )->end();
+// SELECT * FROM `product`
+// WHERE `description` LIKE 'Mouse%' AND `price` <= 300
 ```
+
+ℹ️ _Tip_: You can use the spread operator (`...`) for passing an array of conditions to `andAll()`. Just make sure that your array is not empty, before doing that.
 
 #### `orAll`
 
@@ -429,7 +435,13 @@ $condition = orAll(
     col( 'description' )->startWith( 'Mouse' ),
     col( 'sku' )->contain( 'MZ' )
 );
+
+$sql = select()->from( 'product' )->where( $condition )->end();
+// SELECT * FROM `product`
+// WHERE `description` LIKE 'Mouse%' OR `sku` LIKE '%MZ%'
 ```
+
+ℹ️ _Tip_: You can use the spread operator (`...`) for passing an array of conditions to `orAll()`. Just make sure that your array is not empty, before doing that.
 
 ### Ordering utilities
 
@@ -722,7 +734,7 @@ Documentation soon
         - [x] Boolean and NULL values.
         - [x] Array values inside `in` expressions.
     - [x] Aggregate functions in order by clauses
-    - [x] Aggregate functions in having clauses - by using val()
+    - [x] Aggregate functions in having clauses - by using [val()](#val)
     - [ ] Simulate certain JOIN clauses
 - [ ] Options for SQL generation
     - [ ] Add argument for avoiding escaping names
