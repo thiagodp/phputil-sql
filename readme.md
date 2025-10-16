@@ -36,6 +36,8 @@ composer require phputil/sql
 
 ## Basic Usage
 
+### Queries
+
 1️⃣ Use the function `select()` for creating a query. Then use the method `endAsString( SQLType $sqlType = SQLType::NONE ): string` for obtaining the SQL for a certain type.
 
 
@@ -162,8 +164,17 @@ $pdoStatement->execute( [ 'sku' => $sku ] ); // 👈 Value only here
 // ...
 ```
 
-
 ➡️ See more examples in the [API section](#api).
+
+
+## Data manipulation
+
+ℹ️ Use `deleteFrom()` for creating a `DELETE` command. Examples:
+
+```php
+$command = deleteFrom( 'user' )->where( col( 'id' )->equal( 123 ) )->endAsString();
+// DELETE FROM `user` WHERE `id` = 123
+```
 
 
 ## API
@@ -738,9 +749,10 @@ Documentation soon
     - [ ] Simulate certain JOIN clauses
 - [ ] Options for SQL generation
     - [ ] Add argument for avoiding escaping names
+- [x] Delete statement
+    - [x] WHERE clause
 - [ ] Insert statement
 - [ ] Update statement
-- [ ] Delete statement
 
 👉 Contribute by opening an [Issue](https://github.com/thiagodp/phputil-sql/issues) or making a [Pull Request](https://github.com/thiagodp/phputil-sql/pulls).
 
