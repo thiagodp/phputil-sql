@@ -379,6 +379,33 @@ class Expression implements DBStringable {
 }
 
 
+function __addQuotesToIdentifiers( $valueOrColumn, SQLType $sqlType ): string {
+
+    if ( str_starts_with( $valueOrColumn, "'" ) && str_ends_with( $valueOrColumn, "'" ) ) {
+        return $valueOrColumn; // Keep it as is
+    }
+
+    // Idea: replace the names with names plus quotes/backticks
+
+    [ $begin, $end ] = __getQuoteCharacters( $sqlType );
+    $regex = '[A-z_][A-z_0-9]*'; // No spaces allowed
+
+    if ( $sqlType === SQLType::NONE ) { // No quotes/backticks expected
+        $regex = '/' . $regex . '/';
+        $replacement = $begin . '$0' . $end;
+        $valueOrColumn = preg_replace( $regex, $replacement, $valueOrColumn );
+
+    } else {
+        // Spaces allowed inside quotes/backticks
+        $regex = '/(\\' . $begin . '[A-z_][A-z_0-9 ]*' . '\\' . $end . '|' . $regex . ')/';
+        $replacement = fn( array $matches ) => $begin . trim( $matches[ 1 ] ?? '', ' `' ) . $end;
+        $valueOrColumn = preg_replace_callback( $regex, $replacement, $valueOrColumn );
+    }
+
+    return $valueOrColumn;
+}
+
+
 class AggregateFunction implements DBStringable {
 
     public function __construct(
@@ -399,23 +426,7 @@ class AggregateFunction implements DBStringable {
         $valueOrColumn = trim( __valueOrName( $this->valueOrColumn, $sqlType ), ' `' );
 
         if ( trim( $valueOrColumn ) != '*' ) {
-
-            // Idea: replace the names with names plus quotes/backticks
-
-            [ $begin, $end ] = __getQuoteCharacters( $sqlType );
-            $regex = '[A-z_][A-z_0-9]*'; // No spaces allowed
-
-            if ( $sqlType === SQLType::NONE ) { // No quotes/backticks expected
-                $regex = '/' . $regex . '/';
-                $replacement = $begin . '$0' . $end;
-                $valueOrColumn = preg_replace( $regex, $replacement, $valueOrColumn );
-
-            } else {
-                // Spaces allowed inside quotes/backticks
-                $regex = '/(\\' . $begin . '[A-z_][A-z_0-9 ]*' . '\\' . $end . '|' . $regex . ')/';
-                $replacement = fn( array $matches ) => $begin . trim( $matches[ 1 ] ?? '', ' `' ) . $end;
-                $valueOrColumn = preg_replace_callback( $regex, $replacement, $valueOrColumn );
-            }
+            $valueOrColumn = __addQuotesToIdentifiers( $valueOrColumn, $sqlType );
         }
 
         $alias = __asName( $this->alias, $sqlType );
@@ -1765,3 +1776,76 @@ function insertInto( string $table, array $columns = [], ?Select $select = null 
 }
 
 
+// ----------------------------------------------------------------------------
+// UPDATE
+// ----------------------------------------------------------------------------
+
+class UpdateCommand implements DBStringable, Stringable {
+
+    protected ?Condition $whereCondition = null;
+
+    /** @var array<string, bool|int|float|string> */
+    protected $attributions = [];
+
+    public function __construct(
+        protected string $table
+    ) {
+    }
+
+
+    /**
+     * Set fields, e.g. [ 'field1' => 'value1', 'field2' => 'value2' ]
+     *
+     * @param array<string, bool|int|float|string> $attributions
+     * @return UpdateCommand
+     */
+    public function set( array $attributions ): self {
+        $this->attributions = $attributions;
+        return $this;
+    }
+
+    public function where( Condition $condition ): self {
+        $this->whereCondition = $condition;
+        return $this;
+    }
+
+    public function end(): self {
+        return $this;
+    }
+
+    public function endAsString( SQLType $sqlType = SQLType::NONE ): string {
+        return $this->toString( $sqlType );
+    }
+
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
+
+        $s = 'UPDATE ' . __asName( $this->table, $sqlType );
+
+        if ( \count( $this->attributions ) > 0 ) {
+            $a = [];
+            foreach( $this->attributions as $name => $valueOrColumn ) {
+
+                $valueOrColumn = trim( __valueOrName( $valueOrColumn, $sqlType ), ' `' );
+
+                $valueOrColumn = __addQuotesToIdentifiers( $valueOrColumn, $sqlType );
+                $a []= __asName( $name, $sqlType ) . ' = ' . $valueOrColumn;
+            }
+            $s .= ' SET ' . implode( ', ', $a );
+        }
+
+        if ( $this->whereCondition !== null ) {
+            $s .= ' WHERE ' . $this->whereCondition->toString( $sqlType );
+        }
+        return $s;
+    }
+
+
+    public function __toString(): string {
+        return $this->toString( SQL::$type ); // Uses the database type set as default
+    }
+}
+
+
+function update( string $table ): UpdateCommand {
+    return new UpdateCommand( $table );
+}

@@ -209,6 +209,19 @@ $command = insertInto( 'user', [ 'name', 'username', 'password' ],
 // SELECT `name`, `nickname`, `ssn` FROM `customer`
 ```
 
+ℹ️ Use `update()` for creating an `UPDATE` command. Examples:
+
+```php
+$command = update( 'example' )
+    ->set( [ 'a' => 10, 'b' => 'b + 1', 'c' => 'c + c * 50/100', 'd' => "'Hello'", 'e' => val( 'World' ) ] )
+    ->where( col( 'id' )->equalTo( 1 ) )
+    ->endAsString( SQLType::MYSQL );
+
+// UPDATE `example`
+// SET `a` = 10, `b` = `b` + 1, `c` = `c` + `c` * 50/100, `d` = 'Hello', `e` = 'World'
+// WHERE `id` = 1
+```
+
 ## API
 
 ⚠️ **Note**: Most examples of generated queries are in MySQL. ⚠️
@@ -217,7 +230,9 @@ Index:
 - [Types](#types)
     - [`SQL`](#sql), [`SQLType`](#sqltype)
 - [Basic functions](#basic-functions)
-    - [`select`](#select), [`selectDistinct`](#selectdistinct), [`col`](#col), [`val`](#val), [`param`](#param), [`wrap`](#wrap), [`not`](#not)
+    - [`select`](#select), [`selectDistinct`](#selectdistinct)
+    - [`insertInto`](#insertinto), [`update`](#update), [`deleteFrom`](#deletefrom)
+    - [`col`](#col), [`val`](#val), [`param`](#param), [`wrap`](#wrap), [`not`](#not)
 - [Logic utilities](#logic-utilities)
     - [`andAll`](#andall), [`orAll`](#orall)
 - [Ordering utilities](#ordering-utilities)
@@ -332,6 +347,15 @@ $sql = selectDistinct( 'name' )
     ->end();
 // SELECT DISTINCT `name` FROM `customer` WHERE `name` LIKE 'John%'
 ```
+
+#### `insertInto`
+Soon
+
+#### `update`
+Soon
+
+#### `deleteFrom`
+Soon
 
 #### `col`
 
