@@ -169,13 +169,45 @@ $pdoStatement->execute( [ 'sku' => $sku ] ); // 👈 Value only here
 
 ## Data manipulation
 
-ℹ️ Use `deleteFrom()` for creating a `DELETE` command. Examples:
+ℹ️ Use `deleteFrom()` for creating a `DELETE` command. Example:
 
 ```php
-$command = deleteFrom( 'user' )->where( col( 'id' )->equal( 123 ) )->endAsString();
+$command = deleteFrom( 'user' )->where( col( 'id' )->equal( 123 ) )->end();
 // DELETE FROM `user` WHERE `id` = 123
 ```
 
+ℹ️ Use `insertInto()` for creating an `INSERT` command. Examples:
+
+```php
+// Insert with values only
+$command = insertInto( 'user' )->values(
+    [ 1, 'Alice Foe', 'alice', 'aL1C3_passW0rD' ],
+    [ 2, 'Bob Doe', 'bob', 'just_b0b' ],
+)->end();
+// INSERT INTO `user`
+// VALUES
+// (1, 'Alice Foe', 'alice', 'aL1C3_passW0rD'),
+// (2, 'Bob Doe', 'bob', 'just_b0b')
+
+
+// Insert with field names
+$command = insertInto( 'user', [ 'name', 'username', 'password' ] )->values(
+    [ 'Jack Boo', 'jack', 'b00_jaCK' ],
+    [ 'Suzan Noo', 'suzan', 'suuuz4N' ],
+)->end();
+// INSERT INTO `user` (`name`, `username`, `password`)
+// VALUES
+// ('Jack Boo', 'jack', 'b00_jaCK'),
+// ('Suzan Noo', 'suzan', 'suuuz4N')
+
+
+// Insert from select
+$command = insertInto( 'user', [ 'name', 'username', 'password' ],
+    select( 'name', 'nickname', 'ssn' )->from( 'customer' )
+)->end();
+// INSERT INTO `user` (`name`, `username`, `password`)
+// SELECT `name`, `nickname`, `ssn` FROM `customer`
+```
 
 ## API
 
@@ -751,7 +783,8 @@ Documentation soon
     - [ ] Add argument for avoiding escaping names
 - [x] Delete statement
     - [x] WHERE clause
-- [ ] Insert statement
+- [x] Insert statement
+    - [x] with SELECT clause
 - [ ] Update statement
 
 👉 Contribute by opening an [Issue](https://github.com/thiagodp/phputil-sql/issues) or making a [Pull Request](https://github.com/thiagodp/phputil-sql/pulls).
