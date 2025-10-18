@@ -146,7 +146,7 @@ class ComparableContent implements DBStringable {
     protected $conditions = [];
 
     public function __construct(
-        public mixed $content
+        public Value|Column $content
     ) {
     }
 
@@ -215,7 +215,7 @@ class ComparableContent implements DBStringable {
     }
 
     protected function makeSpecialLike(
-        string|ComparableContent|Value $rightSide,
+        string|ComparableContent|Value|Param $rightSide,
         bool $addToTheBeginning,
         bool $addToTheEnd,
     ): Condition {
@@ -246,15 +246,15 @@ class ComparableContent implements DBStringable {
         return $this->like( $rightSide );
     }
 
-    public function startWith( string|ComparableContent|Value $rightSide ): Condition {
+    public function startWith( string|ComparableContent|Value|Param $rightSide ): Condition {
         return $this->makeSpecialLike( $rightSide, false, true );
     }
 
-    public function endWith( string|ComparableContent|Value $rightSide ): Condition {
+    public function endWith( string|ComparableContent|Value|Param $rightSide ): Condition {
         return $this->makeSpecialLike( $rightSide, true, false );
     }
 
-    public function contain( string|ComparableContent|Value $rightSide ): Condition {
+    public function contain( string|ComparableContent|Value|Param $rightSide ): Condition {
         return $this->makeSpecialLike( $rightSide, true, true );
     }
 
@@ -277,25 +277,25 @@ class ComparableContent implements DBStringable {
 
     public function isNull(): Condition {
         return $this->add(
-            new ConditionalOp( 'IS', $this->content, new Value( 'NULL' ) )
+            new ConditionalOp( 'IS', $this->content, new Raw( 'NULL' ) )
         );
     }
 
     public function isNotNull(): Condition {
         return $this->add(
-            new ConditionalOp( 'IS', $this->content, new Value( 'NOT NULL' ) )
+            new ConditionalOp( 'IS', $this->content, new Raw( 'NOT NULL' ) )
         );
     }
 
     public function isTrue(): Condition {
         return $this->add(
-            new ConditionalOp( 'IS', $this->content, new Value( 'TRUE' ) )
+            new ConditionalOp( 'IS', $this->content, new Raw( 'TRUE' ) )
         );
     }
 
     public function isFalse(): Condition {
         return $this->add(
-            new ConditionalOp( 'IS', $this->content, new Value( 'FALSE' ) )
+            new ConditionalOp( 'IS', $this->content, new Raw( 'FALSE' ) )
         );
     }
 
@@ -347,6 +347,19 @@ class Value implements DBStringable {
 
     public function toString( SQLType $sqlType = SQLType::NONE ): string {
         return __toValue( $this->content, $sqlType );
+    }
+}
+
+
+class Raw implements Stringable {
+
+    public function __construct(
+        public string $value
+    ) {
+    }
+
+    public function __toString(): string {
+        return $this->value;
     }
 }
 
@@ -968,12 +981,14 @@ function __toBoolean( bool $value, bool $asInteger = false ): string {
 function __toValue(
     mixed $value,
     SQLType $sqlType = SQLType::NONE
-    ): string {
+): string {
 
     if ( is_null( $value ) ) {
         return 'NULL';
     } else if ( is_string( $value ) ) {
         return __toString( $value );
+    } else if ( $value instanceof ComparableContent || $value instanceof Value ) {
+        return __toValue( $value->content, $sqlType );
     } else if ( $value instanceof Value ) {
         $content = $value->content;
         if ( is_string( $content ) || is_numeric( $content ) ) {
@@ -982,7 +997,9 @@ function __toValue(
         return __toValue( $content, $sqlType );
     } else if ( $value instanceof Column ) {
         return __asName( $value->toString( $sqlType ), $sqlType );
-    } else if ( $value instanceof DBStringable || $value instanceof LazyConversionFunction ) {
+    } else if ( $value instanceof DBStringable ||
+        $value instanceof LazyConversionFunction
+    ) {
         return $value->toString( $sqlType );
     } else if ( $value instanceof DateTimeInterface ) {
         return __toDateString( $value );
@@ -1040,14 +1057,27 @@ function val( mixed $value ): ComparableContent {
     return new ComparableContent( $v );
 }
 
-function param( string $value = '?' ): ComparableContent {
+class Param implements Stringable {
+
+    public function __construct(
+        public string $value
+    ) {
+    }
+
+    public function __toString(): string {
+        return $this->value;
+    }
+}
+
+function param( string $value = '?' ): Param {
     $value = trim( $value );
     if ( $value === '' || $value === ':' ) {
         $value = '?';
     } else if ( $value != '?' && ! str_starts_with( $value, ':' ) ) {
         $value = ':' . $value;
     }
-    return val( $value );
+    // return val( $value );
+    return new Param( $value );
 }
 
 function quote( string $value ): string {
@@ -1825,9 +1855,13 @@ class UpdateCommand implements DBStringable, Stringable {
             $a = [];
             foreach( $this->attributions as $name => $valueOrColumn ) {
 
-                $valueOrColumn = trim( __valueOrName( $valueOrColumn, $sqlType ), ' `' );
+                if ( $valueOrColumn instanceof ComparableContent || $valueOrColumn instanceof Param ) {
+                    $valueOrColumn = __toValue( $valueOrColumn, $sqlType );
+                } else {
+                    $valueOrColumn = trim( __valueOrName( $valueOrColumn, $sqlType ), ' `' );
+                    $valueOrColumn = __addQuotesToIdentifiers( $valueOrColumn, $sqlType );
+                }
 
-                $valueOrColumn = __addQuotesToIdentifiers( $valueOrColumn, $sqlType );
                 $a []= __asName( $name, $sqlType ) . ' = ' . $valueOrColumn;
             }
             $s .= ' SET ' . implode( ', ', $a );

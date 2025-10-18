@@ -25,28 +25,33 @@ describe( 'utilities', function() {
     describe( 'param', function() {
 
         it( 'returns a question mark when called without an argument', function() {
-            $r = param()->toString();
-            expect( $r )->toBe( '?' );
+            // $r = param()->toString();
+            $r = param();
+            expect( (string) $r )->toBe( '?' );
         } );
 
         it( 'returns a question mark when called with an empty string', function() {
-            $r = param( '' )->toString();
-            expect( $r )->toBe( '?' );
+            // $r = param( '' )->toString();
+            $r = param( '' );
+            expect( (string) $r )->toBe( '?' );
         } );
 
         it( 'returns a question mark when called with colon', function() {
-            $r = param( ':' )->toString();
-            expect( $r )->toBe( '?' );
+            // $r = param( ':' )->toString();
+            $r = param( ':' );
+            expect( (string) $r )->toBe( '?' );
         } );
 
         it( 'returns the given parameter with colon', function() {
-            $r = param( 'x' )->toString();
-            expect( $r )->toBe( ':x' );
+            // $r = param( 'x' )->toString();
+            $r = param( 'x' );
+            expect( (string) $r )->toBe( ':x' );
         } );
 
         it( 'returns the given parameter with just one colon, when the parameter already has one colon', function() {
-            $r = param( ':x' )->toString();
-            expect( $r )->toBe( ':x' );
+            // $r = param( ':x' )->toString();
+            $r = param( ':x' );
+            expect( (string) $r )->toBe( ':x' );
         } );
 
     } );

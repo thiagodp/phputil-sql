@@ -31,7 +31,7 @@ describe( 'update', function() {
     it( 'can have set with attributions', function() {
 
         $r = update( 'example' )
-            ->set( [ 'a' => 10, 'b' => 'b + 1', 'c' => 'c + c * 50/100', 'd' => "'Hello'" ])
+            ->set( [ 'a' => 10, 'b' => 'b + 1', 'c' => 'c + c * 50/100', 'd' => "'Hello'" ] )
             ->where( col( 'id' )->equalTo( 1 ) )
             ->endAsString( SQLType::MYSQL );
 
@@ -44,7 +44,7 @@ describe( 'update', function() {
     it( 'can have attribution with val', function() {
 
         $r = update( 'example' )
-            ->set( [ 'a' => val( 10 ), 'd' => val( 'Hello' ) ])
+            ->set( [ 'a' => val( 10 ), 'd' => val( 'Hello' ) ] )
             ->where( col( 'id' )->equalTo( 1 ) )
             ->endAsString( SQLType::MYSQL );
 
@@ -54,16 +54,55 @@ describe( 'update', function() {
     } );
 
 
-    // it( 'can receive anonymous params', function() {
+    it( 'can receive anonymous params in set()', function() {
 
-    //     $r = update( 'example' )
-    //         ->set( [ 'a' => param(), 'b' => param() ])
-    //         ->where( col( 'id' )->equalTo( 1 ) )
-    //         ->endAsString( SQLType::MYSQL );
+        $r = update( 'example' )
+            ->set( [ 'a' => param(), 'b' => param() ] )
+            ->where( col( 'id' )->equalTo( 1 ) )
+            ->endAsString( SQLType::MYSQL );
 
-    //     expect( $r )->toBe(
-    //         "UPDATE `example` SET `a` = ?, `b` = ? WHERE `id` = 1"
-    //     );
-    // } );
+        expect( $r )->toBe(
+            "UPDATE `example` SET `a` = ?, `b` = ? WHERE `id` = 1"
+        );
+    } );
+
+
+    it( 'can receive named params in set()', function() {
+
+        $r = update( 'example' )
+            ->set( [ 'a' => param( 'a' ), 'b' => param( 'b' ) ] )
+            ->where( col( 'id' )->equalTo( 1 ) )
+            ->endAsString( SQLType::MYSQL );
+
+        expect( $r )->toBe(
+            "UPDATE `example` SET `a` = :a, `b` = :b WHERE `id` = 1"
+        );
+    } );
+
+
+    it( 'can receive anonymous params in where', function() {
+
+        $r = update( 'example' )
+            ->set( [ 'a' => param(), 'b' => param() ] )
+            ->where( col( 'id' )->equalTo( param() ) )
+            ->endAsString( SQLType::MYSQL );
+
+        expect( $r )->toBe(
+            "UPDATE `example` SET `a` = ?, `b` = ? WHERE `id` = ?"
+        );
+    } );
+
+
+    it( 'can receive named params in where()', function() {
+
+        $r = update( 'example' )
+            ->set( [ 'a' => param( 'a' ), 'b' => param( 'b' ) ] )
+            ->where( col( 'id' )->equalTo( param( 'id' ) ) )
+            ->endAsString( SQLType::MYSQL );
+
+        expect( $r )->toBe(
+            "UPDATE `example` SET `a` = :a, `b` = :b WHERE `id` = :id"
+        );
+    } );
 
 } );
