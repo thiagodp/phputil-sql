@@ -28,4 +28,30 @@ describe( 'deleteFrom', function() {
         expect( (string) $r )->toBe( 'DELETE FROM example WHERE id = 1' );
     } );
 
+
+    it( 'can have anonymous parameters in where()', function() {
+
+        $r = deleteFrom( 'example' )
+            ->where(
+                col( 'id' )->equalTo( param() )
+            )->endAsString( SQLType::MYSQL );
+
+        expect( $r )->toBe(
+            'DELETE FROM `example` WHERE `id` = ?'
+        );
+    } );
+
+
+    it( 'can have named parameters in where()', function() {
+
+        $r = deleteFrom( 'example' )
+            ->where(
+                col( 'id' )->equalTo( param( 'id' ) )
+            )->endAsString( SQLType::MYSQL );
+
+        expect( $r )->toBe(
+            'DELETE FROM `example` WHERE `id` = :id'
+        );
+    } );
+
 } );

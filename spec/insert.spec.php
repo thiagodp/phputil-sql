@@ -66,4 +66,31 @@ describe( 'insertInto', function() {
     } );
 
 
+
+    it( 'can have anonymous parameters in values()', function() {
+
+        $r = insertInto( 'example', [ 'one', 'two' ] )
+            ->values(
+                [ param(), param() ],
+                [ param(), param() ],
+            )->endAsString( SQLType::MYSQL );
+
+        expect( $r )->toBe(
+            "INSERT INTO `example` (`one`, `two`) VALUES (?, ?), (?, ?)"
+        );
+    } );
+
+
+    it( 'can have named parameters in values()', function() {
+
+        $r = insertInto( 'example', [ 'one', 'two' ] )
+            ->values(
+                [ param( 'a' ), param( 'b' ) ],
+                [ param( 'c' ), param( 'd' ) ],
+            )->endAsString( SQLType::MYSQL );
+
+        expect( $r )->toBe(
+            "INSERT INTO `example` (`one`, `two`) VALUES (:a, :b), (:c, :d)"
+        );
+    } );
 } );

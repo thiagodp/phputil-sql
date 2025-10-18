@@ -41,7 +41,7 @@ describe( 'update', function() {
     } );
 
 
-    it( 'can have attribution with val', function() {
+    it( 'can have attribution with val()', function() {
 
         $r = update( 'example' )
             ->set( [ 'a' => val( 10 ), 'd' => val( 'Hello' ) ] )
