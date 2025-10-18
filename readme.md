@@ -898,7 +898,7 @@ Documentation soon
     - [x] WHERE clause
 - [x] Insert statement
     - [x] with SELECT clause
-- [ ] Update statement
+- [x] Update statement
 
 👉 Contribute by opening an [Issue](https://github.com/thiagodp/phputil-sql/issues) or making a [Pull Request](https://github.com/thiagodp/phputil-sql/pulls).
 
