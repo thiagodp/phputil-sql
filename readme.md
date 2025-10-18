@@ -172,13 +172,22 @@ $pdoStatement->execute( [ 'sku' => $sku ] ); // 👈 Value only here
 ℹ️ Use `deleteFrom()` for creating a `DELETE` command. Example:
 
 ```php
-$command = deleteFrom( 'user' )->where( col( 'id' )->equal( 123 ) )->end();
-// DELETE FROM `user` WHERE `id` = 123
+$command = deleteFrom( 'user' )->where( col( 'id' )->equalTo( param() ) )->end();
+// DELETE FROM `user` WHERE `id` = ?
 ```
 
 ℹ️ Use `insertInto()` for creating an `INSERT` command. Examples:
 
 ```php
+// Insert with field names and named parameters
+$command = insertInto( 'user', [ 'name', 'username', 'password' ] )
+    ->values(
+        [ param( 'name' ), param( 'username' ), param( 'password' ) ]
+    )->end();
+// INSERT INTO `user` (`name`, `username`, `password`)
+// VALUES (:name, :username, :password)
+
+
 // Insert with values only
 $command = insertInto( 'user' )->values(
     [ 1, 'Alice Foe', 'alice', 'aL1C3_passW0rD' ],
@@ -188,17 +197,6 @@ $command = insertInto( 'user' )->values(
 // VALUES
 // (1, 'Alice Foe', 'alice', 'aL1C3_passW0rD'),
 // (2, 'Bob Doe', 'bob', 'just_b0b')
-
-
-// Insert with field names
-$command = insertInto( 'user', [ 'name', 'username', 'password' ] )->values(
-    [ 'Jack Boo', 'jack', 'b00_jaCK' ],
-    [ 'Suzan Noo', 'suzan', 'suuuz4N' ],
-)->end();
-// INSERT INTO `user` (`name`, `username`, `password`)
-// VALUES
-// ('Jack Boo', 'jack', 'b00_jaCK'),
-// ('Suzan Noo', 'suzan', 'suuuz4N')
 
 
 // Insert from select
@@ -212,11 +210,20 @@ $command = insertInto( 'user', [ 'name', 'username', 'password' ],
 ℹ️ Use `update()` for creating an `UPDATE` command. Examples:
 
 ```php
+// Update with anonymous parameter and function
+$command = update( 'user' )
+    ->set( [ 'password' => param(), 'last_update' => now() ] )
+    ->where( col( 'id' )->equalTo( 123 ) )
+    ->endAsString( SQLType::MYSQL );
+// UPDATE `user`
+// SET `password` = ?, `last_update` = NOW()
+// WHERE `id` = 123
+
+
 $command = update( 'example' )
     ->set( [ 'a' => 10, 'b' => 'b + 1', 'c' => 'c + c * 50/100', 'd' => "'Hello'", 'e' => val( 'World' ) ] )
     ->where( col( 'id' )->equalTo( 1 ) )
     ->endAsString( SQLType::MYSQL );
-
 // UPDATE `example`
 // SET `a` = 10, `b` = `b` + 1, `c` = `c` + `c` * 50/100, `d` = 'Hello', `e` = 'World'
 // WHERE `id` = 1

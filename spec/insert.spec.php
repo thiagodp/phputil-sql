@@ -93,4 +93,20 @@ describe( 'insertInto', function() {
             "INSERT INTO `example` (`one`, `two`) VALUES (:a, :b), (:c, :d)"
         );
     } );
+
+
+    it( 'accepts functions to field values', function() {
+
+        $r = insertInto( 'example', [ 'one', 'two' ] )
+            ->values(
+                [ now(), count( 'id' ) ],
+                [ date(), max( 'id' ) ],
+            )
+            ->endAsString( SQLType::MYSQL );
+
+        expect( $r )->toBe(
+            "INSERT INTO `example` (`one`, `two`) VALUES (NOW(), COUNT(`id`)), (CURRENT_DATE, MAX(`id`))"
+        );
+    } );
+
 } );
