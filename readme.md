@@ -203,7 +203,7 @@ $command = insertInto( 'user', [ 'name', 'username', 'password' ] )->values(
 
 // Insert from select
 $command = insertInto( 'user', [ 'name', 'username', 'password' ],
-    select( 'name', 'nickname', 'ssn' )->from( 'customer' )
+    select( 'name', 'nickname', 'ssn' )->from( 'customer' )->end()
 )->end();
 // INSERT INTO `user` (`name`, `username`, `password`)
 // SELECT `name`, `nickname`, `ssn` FROM `customer`
@@ -349,13 +349,95 @@ $sql = selectDistinct( 'name' )
 ```
 
 #### `insertInto`
-Soon
+
+`insertInto( string $table, string[] $fields = [], ?Select $select = null )` creates an `INSERT` command.
+
+```php
+// With no fields declared, but they are: id, name, email
+$command = insertInto( 'contact' )
+    ->values(
+        [ 1, 'John Doe', 'john@doe.com' ],
+        [ 2, 'Suzan Foe', 'suzan@foe.com' ],
+    )->end();
+// INSERT INTO `contact`
+// VALUES
+// (1, 'John Doe', 'john@doe.com'),
+// (2, 'Suzan Foe', 'suzan@foe.com')
+
+
+// With fields declared, considering an auto-incremental id
+$command = insertInto( 'contact', [ 'name', 'email' ] )
+    ->values(
+        [ 'John Doe', 'john@doe.com' ],
+        [ 'Suzan Foe', 'suzan@foe.com' ],
+    )->end();
+// INSERT INTO `contact` (`name`, `email`)
+// VALUES
+// ('John Doe', 'john@doe.com'),
+// ('Suzan Foe', 'suzan@foe.com')
+
+
+// With anonymous parameters
+$command = insertInto( 'contact', [ 'name', 'email' ] )
+    ->values(
+        [ param(), param() ]
+    )->end();
+// INSERT INTO `contact` (`name`, `email`) VALUES (?, ?)
+
+
+// With named parameters
+$command = insertInto( 'contact', [ 'name', 'email' ] )
+    ->values(
+        [ param( 'name' ), param( 'email' ) ]
+    )->end();
+// INSERT INTO `contact` (`name`, `email`) VALUES (:name, :email)
+
+
+// From selection
+$command = insertInto( 'contact', [ 'name', 'email' ],
+        select( 'name', 'email' )->from( 'customer' )
+            ->where( col( 'email' )->endWith( '@acme.com' ) )
+            ->end()
+    )->end();
+// INSERT INTO `contact` (`name`, `email`)
+// SELECT `name`, `email` FROM `customer`
+// WHERE `email` LIKE '%@acme.com'
+```
 
 #### `update`
-Soon
+
+`update` creates an `UPDATE` command. Example:
+
+```php
+$command = update( 'user' )
+    ->set(
+        [ 'password' => val( '123456' ), 'last_update' => now() ]
+    )->where(
+        col( 'id' )->equalTo( 123 )
+    )->end();
+// UPDATE `user`
+// SET `password` = '123456', `last_update` = NOW()
+// WHERE `id` = 123
+```
 
 #### `deleteFrom`
-Soon
+
+`deleteFrom` creates a `DELETE` command. Example:
+
+```php
+// With anonymous parameter
+$command = deleteFrom( 'user' )
+    ->where( col( 'id' )->equalTo( param() ) )
+    ->end();
+// DELETE FROM `user` WHERE `id` = ?
+
+
+// With named parameter
+$command = deleteFrom( 'user' )
+    ->where( col( 'id' )->equalTo( param( 'id' ) ) )
+    ->end();
+// DELETE FROM `user` WHERE `id` = :id
+```
 
 #### `col`
 

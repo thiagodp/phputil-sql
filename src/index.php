@@ -480,12 +480,6 @@ class Select implements DBStringable, Stringable {
         protected bool $distinct,
         mixed ...$columns
     ) {
-        // OLD:
-        // if ( empty( $columns ) ) {
-        //     $columns = [ '*' ];
-        // }
-        // $this->columns = array_map( fn($c) => __parseColumnAndAlias( $c ), $columns );
-
         $this->columns = $columns;
     }
 
@@ -1855,7 +1849,11 @@ class UpdateCommand implements DBStringable, Stringable {
             $a = [];
             foreach( $this->attributions as $name => $valueOrColumn ) {
 
-                if ( $valueOrColumn instanceof ComparableContent || $valueOrColumn instanceof Param ) {
+                if ( $valueOrColumn instanceof ComparableContent ||
+                    $valueOrColumn instanceof Param ||
+                    $valueOrColumn instanceof AggregateFunction ||
+                    $valueOrColumn instanceof LazyConversionFunction
+                ) {
                     $valueOrColumn = __toValue( $valueOrColumn, $sqlType );
                 } else {
                     $valueOrColumn = trim( __valueOrName( $valueOrColumn, $sqlType ), ' `' );

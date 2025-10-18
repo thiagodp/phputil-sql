@@ -105,4 +105,17 @@ describe( 'update', function() {
         );
     } );
 
+
+    it( 'accepts functions to field values', function() {
+
+        $r = update( 'example' )
+            ->set( [ 'a' => now() ] )
+            ->where( col( 'id' )->equalTo( 1 ) )
+            ->endAsString( SQLType::MYSQL );
+
+        expect( $r )->toBe(
+            "UPDATE `example` SET `a` = NOW() WHERE `id` = 1"
+        );
+    } );
+
 } );
