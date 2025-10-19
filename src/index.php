@@ -28,7 +28,6 @@ class SQL {
     public static function useOracle(): void { self::$type = SQLType::ORACLE; }
 }
 
-// ----------------------------------------------------------------------------
 
 interface DBStringable {
 
@@ -93,9 +92,6 @@ class ConditionalOp implements Condition {
     }
 }
 
-// ----------------------------------------------------------------------------
-// BETWEEN
-// ----------------------------------------------------------------------------
 
 class BetweenCondition extends ConditionalOp {
 
@@ -120,9 +116,6 @@ class BetweenCondition extends ConditionalOp {
 
 }
 
-// ----------------------------------------------------------------------------
-// Comparison Operators
-// ----------------------------------------------------------------------------
 class InCondition extends ConditionalOp {
 
     public function __construct( mixed $leftSide, mixed $rightSide ) {
@@ -266,7 +259,7 @@ class ComparableContent implements DBStringable {
 
     /**
      * The value must be included in a query or array of values.
-     * @param \phputil\sql\From|string[]|int[]|float[] $selection
+     * @param From|string[]|int[]|float[] $selection
      * @return Condition
      */
     public function in( From|array $selection ): Condition {
@@ -363,6 +356,9 @@ class Raw implements Stringable {
     }
 }
 
+// ----------------------------------------------------------------------------
+// Functions and expressions
+// ----------------------------------------------------------------------------
 
 class Expression implements DBStringable {
 
@@ -526,8 +522,6 @@ class TableData implements DBStringable {
         $tableName = __asName( $pieces[ 0 ] ?? '', $sqlType );
         $tableAlias = __asName( $pieces[ 1 ] ?? '', $sqlType );
 
-        // ---------------------------------------------------------------------
-
         if ( $tableAlias != '' ) { // It has an alias
             return $tableName . ' ' . $tableAlias;
         }
@@ -560,7 +554,7 @@ class From implements DBStringable {
     /**
      * Constructor
      *
-     * @param \phputil\sql\Select $parent
+     * @param Select $parent
      * @param TableData[] $tables
      */
     public function __construct(
@@ -1025,6 +1019,7 @@ function __valueOrName( mixed $str, SQLType $sqlType ): string {
     }
     return "$str";
 }
+
 // ----------------------------------------------------------------------------
 // BASIC FUNCTIONS
 // ----------------------------------------------------------------------------

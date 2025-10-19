@@ -53,9 +53,14 @@ describe( 'select', function() {
         expect( $r )->toBe( 'SELECT *' );
     } );
 
-    it( 'can select with functions', function() {
+    it( 'can select with aggregate functions', function() {
         $r = select( count( 'id' ), max( 'id' ), min( 'id' ) )->toString( SQLType::MYSQL );
         expect( $r )->toBe( 'SELECT COUNT(`id`), MAX(`id`), MIN(`id`)' );
+    } );
+
+    it( 'can select with date and time functions', function() {
+        $sql = select( now(), date(), time() )->toString( SQLType::MYSQL );
+        expect( $sql )->toBe( 'SELECT NOW(), CURRENT_DATE, CURRENT_TIME' );
     } );
 
     it( 'can select with mixed content', function() {
