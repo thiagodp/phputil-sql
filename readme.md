@@ -1,3 +1,5 @@
+[![Packagist Version](https://img.shields.io/packagist/v/phputil/sql?style=for-the-badge&color=green)](https://github.com/thiagodp/sql/commits/main/)
+
 # phputil/sql
 
 > 🪄 Probably the best SQL query builder for PHP
@@ -10,7 +12,7 @@ Features:
 - 🔥 Fluid, typed, SQL-like syntax.
 - 🛟 Automatically quote columns and table names (e.g. backticks in MySQL).
 - 🪢 Support to complex queries.
-- 🛠️ Include utility functions for [aggregation](#aggregate-functions), [string](#string-functions), [date and time](#date-and-time-functions), and [math](#math-functions).
+- 🛠️ Include utility functions for [aggregation](#aggregate-functions), [string](#string-functions), [date and time](#date-and-time-functions), [null](#null-handling-function), and [math](#math-functions).
 
 See the [Roadmap](#roadmap)
 
@@ -32,6 +34,8 @@ This library is particularly useful for:
 ```bash
 composer require phputil/sql
 ```
+
+Note: While a library is in version `0.x` (pre-1.0), [Composer is not able to get updates automatically](https://getcomposer.org/doc/articles/versions.md#caret-version-range-) (via `composer update`), so it is necessary to install it again (with the command above) to get newer versions.
 
 
 ## Basic Usage
