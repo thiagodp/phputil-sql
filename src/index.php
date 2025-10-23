@@ -1564,6 +1564,20 @@ function ifNull(
 // MATHEMATICAL FUNCTIONS
 // ----------------------------------------------------------------------------
 
+function __parseExpression(
+    ComparableContent|float|int|string $valueOrColumn,
+    SQLType $sqlType = SQLType::NONE
+): string {
+
+    $valueOrColumn = trim( __valueOrName( $valueOrColumn, $sqlType ), ' `' );
+
+    if ( $valueOrColumn != '*' ) {
+        $valueOrColumn = __addQuotesToIdentifiers( $valueOrColumn, $sqlType );
+    }
+
+    return $valueOrColumn;
+}
+
 class ValueOrColumnBasedOnDemandFunction extends LazyConversionFunction {
     public function __construct(
         protected string $functionName,
@@ -1571,7 +1585,7 @@ class ValueOrColumnBasedOnDemandFunction extends LazyConversionFunction {
         ) {}
 
     public function toString( SQLType $sqlType = SQLType::NONE ): string {
-        $valueOrColumn = __valueOrName( $this->valueOrColumn, $sqlType );
+        $valueOrColumn = __parseExpression( $this->valueOrColumn, $sqlType );
         return $this->functionName . '(' . $valueOrColumn . ')';
     }
 }
@@ -1590,7 +1604,7 @@ function round( string|int|float|ComparableContent $valueOrColumn, int $decimals
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
-            $valueOrColumn = __valueOrName( $this->valueOrColumn, $sqlType );
+            $valueOrColumn = __parseExpression( $this->valueOrColumn, $sqlType );
             $decimals = $this->decimals;
             return "ROUND($valueOrColumn, $decimals)";
         }
@@ -1605,7 +1619,7 @@ function ceil( string|int|float|ComparableContent $valueOrColumn ): LazyConversi
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
-            $valueOrColumn = __valueOrName( $this->valueOrColumn, $sqlType );
+            $valueOrColumn = __parseExpression( $this->valueOrColumn, $sqlType );
             return match( $sqlType ) {
                 SQLType::SQLSERVER => "CEILING($valueOrColumn)",
                 default => "CEIL($valueOrColumn)"
@@ -1630,8 +1644,8 @@ function power(
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
-            $base = __valueOrName( $this->base, $sqlType );
-            $exponent = __valueOrName( $this->exponent, $sqlType );
+            $base = __parseExpression( $this->base, $sqlType );
+            $exponent = __parseExpression( $this->exponent, $sqlType );
             return "POWER($base, $exponent)";
         }
     };
