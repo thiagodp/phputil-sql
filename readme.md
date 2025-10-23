@@ -35,7 +35,7 @@ This library is particularly useful for:
 composer require phputil/sql
 ```
 
-Note: While a library is in version `0.x` (pre-1.0), [Composer is not able to get updates automatically](https://getcomposer.org/doc/articles/versions.md#caret-version-range-) (via `composer update`), so it is necessary to install it again (with the command above) to get newer versions.
+Note: While a PHP library is in version `0.x` (pre-1.0), [Composer is not able to get updates automatically](https://getcomposer.org/doc/articles/versions.md#caret-version-range-) (via `composer update`), so it is necessary to install it again (with the command above) to get newer versions.
 
 
 ## Basic Usage

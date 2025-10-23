@@ -159,6 +159,26 @@ describe( 'conditions', function() {
     } );
 
 
+    describe( 'orNot', function() {
+
+        it( 'converts correctly', function() {
+            $r = col( 'a' )->equalTo( 1 )->orNot( col( 'b' )->equalTo( 1 ) )->toString();
+            expect( $r )->toBe( 'a = 1 OR NOT b = 1' );
+        } );
+
+    } );
+
+
+    describe( 'andNot', function() {
+
+        it( 'converts correctly', function() {
+            $r = col( 'a' )->equalTo( 1 )->andNot( col( 'b' )->equalTo( 1 ) )->toString();
+            expect( $r )->toBe( 'a = 1 AND NOT b = 1' );
+        } );
+
+    } );
+
+
     describe( 'startWith', function() {
 
         it( 'adds % to the end of a value', function() {
