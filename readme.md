@@ -848,32 +848,73 @@ $sql = select( 'name', ifNull( 'nickname', 'name' ) )
 
 ### Math functions
 
+Math functions can receive a field, a value or an expression.
+
+All of them have a method `as()` to define an alias. Example:
+
+```php
+$sql = select(
+    power( 'price', 2 )->as( 'New price' )
+)->from( 'product' )->end();
+
+// SELECT POWER(`price`, 2) AS `New price` FROM `product`
+```
+
 #### `abs`
-Documentation soon
+
+```php
+$sql = select( abs( 'price' ) )->from( 'product' )->end();
+```
 
 #### `round`
-Documentation soon
+
+```php
+$sql = select( round( 'price * amount' ) )->from( 'product' )->end();
+```
 
 #### `ceil`
-Documentation soon
+
+```php
+$sql = select( ceil( 'price' ) )->from( 'product' )->end();
+```
+
 
 #### `floor`
-Documentation soon
+
+```php
+$sql = select( floor( 'price' ) )->from( 'product' )->end();
+```
+
 
 #### `power`
-Documentation soon
+
+```php
+$sql = select( power( 'price', 2 ) )->from( 'product' )->end();
+```
 
 #### `sqrt`
-Documentation soon
+
+```php
+$sql = select( sqrt( 'amount' ) )->from( 'product' )->end();
+```
 
 #### `sin`
-Documentation soon
+
+```php
+$sql = select( sin( 2 ) );
+```
 
 #### `cos`
-Documentation soon
+
+```php
+$sql = select( cos( 2 ) );
+```
 
 #### `tan`
-Documentation soon
+
+```php
+$sql = select( tan( 2 ) );
+```
 
 ## Roadmap
 

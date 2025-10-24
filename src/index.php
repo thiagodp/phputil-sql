@@ -459,6 +459,13 @@ abstract class LazyConversionFunction implements DBStringable {
         $this->aliasValue = $alias;
         return $this;
     }
+
+    protected function makeAlias( SQLType $sqlType ): string {
+        if ( $this->aliasValue === '' ) {
+            return '';
+        }
+        return ' AS ' . __asName( $this->aliasValue, $sqlType );
+    }
 }
 
 
@@ -1586,7 +1593,7 @@ class ValueOrColumnBasedOnDemandFunction extends LazyConversionFunction {
 
     public function toString( SQLType $sqlType = SQLType::NONE ): string {
         $valueOrColumn = __parseExpression( $this->valueOrColumn, $sqlType );
-        return $this->functionName . '(' . $valueOrColumn . ')';
+        return $this->functionName . '(' . $valueOrColumn . ')' . $this->makeAlias( $sqlType );
     }
 }
 
@@ -1595,18 +1602,21 @@ function abs( string|int|float|ComparableContent $valueOrColumn ): LazyConversio
     return new ValueOrColumnBasedOnDemandFunction( 'ABS', $valueOrColumn );
 }
 
-function round( string|int|float|ComparableContent $valueOrColumn, int $decimals = 2 ): LazyConversionFunction {
+function round( string|int|float|ComparableContent $valueOrColumn, ?int $decimals = null ): LazyConversionFunction {
     return new class ( $valueOrColumn, $decimals ) extends LazyConversionFunction {
 
         public function __construct(
             protected string|int|float|ComparableContent $valueOrColumn,
-            protected int $decimals = 2
+            protected ?int $decimals = 2
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $valueOrColumn = __parseExpression( $this->valueOrColumn, $sqlType );
             $decimals = $this->decimals;
-            return "ROUND($valueOrColumn, $decimals)";
+            $f = ( null === $decimals )
+                ? "ROUND($valueOrColumn)"
+                : "ROUND($valueOrColumn, $decimals)";
+            return $f . $this->makeAlias( $sqlType );
         }
     };
 }
@@ -1620,10 +1630,11 @@ function ceil( string|int|float|ComparableContent $valueOrColumn ): LazyConversi
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $valueOrColumn = __parseExpression( $this->valueOrColumn, $sqlType );
-            return match( $sqlType ) {
+            $f = match( $sqlType ) {
                 SQLType::SQLSERVER => "CEILING($valueOrColumn)",
                 default => "CEIL($valueOrColumn)"
             };
+            return $f . $this->makeAlias( $sqlType );
         }
     };
 }
@@ -1646,7 +1657,7 @@ function power(
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $base = __parseExpression( $this->base, $sqlType );
             $exponent = __parseExpression( $this->exponent, $sqlType );
-            return "POWER($base, $exponent)";
+            return "POWER($base, $exponent)" . $this->makeAlias( $sqlType );
         }
     };
 }
