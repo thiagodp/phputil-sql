@@ -53,4 +53,47 @@ describe( 'aggregate functions', function() {
         expect( $r )->toBe( "COUNT(`t1`.`a` * (`t1`.`b` + `t1`.`c`) - (`t2`.`d` / `t2`.`e`))" );
     } );
 
+    describe( 'basic function checking', function() {
+
+        it( 'has count()', function() {
+            $r = count( 'a' )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( "COUNT(`a`)" );
+        } );
+
+        it( 'has countDistinct()', function() {
+            $r = countDistinct( 'a' )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( "COUNT(DISTINCT `a`)" );
+        } );
+
+        it( 'has sum()', function() {
+            $r = sum( 'a' )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( "SUM(`a`)" );
+        } );
+
+        it( 'has sumDistinct()', function() {
+            $r = sumDistinct( 'a' )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( "SUM(DISTINCT `a`)" );
+        } );
+
+        it( 'has avg()', function() {
+            $r = avg( 'a' )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( "AVG(`a`)" );
+        } );
+
+        it( 'has avgDistinct()', function() {
+            $r = avgDistinct( 'a' )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( "AVG(DISTINCT `a`)" );
+        } );
+
+        it( 'has min()', function() {
+            $r = min( 'a' )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( "MIN(`a`)" );
+        } );
+
+        it( 'has max()', function() {
+            $r = max( 'a' )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( "MAX(`a`)" );
+        } );
+    } );
+
 } );
