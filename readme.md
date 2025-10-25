@@ -800,6 +800,16 @@ Documentation soon
 
 ### String functions
 
+All string functions can have an alias, using `as()`. Example:
+
+```php
+$sql = select(
+    concat( 'first_name', 'last_name' )->as( 'full_name' )
+)->from( 'customer' )->end();
+
+// SELECT CONCAT(`first_name`, `last_name`) AS `full_name` FROM `customer`
+```
+
 #### `upper`
 
 `upper( $textOrColumn )` converts a text or column to uppercase. Example:
@@ -819,16 +829,50 @@ $sql = select( lower( 'name' ) )->from( 'customer' )->end();
 ```
 
 #### `substring`
-Documentation soon
+
+`substring( $textOrColumn, int $startingIndex, ?int $length = null )` gets a piece of a text or column.
+- `$startingIndex` starts at 1;
+- `$length` is optional.
+
+Examples:
+
+```php
+$sql = select( substring( 'name', 1, 5 ) ) )->from( 'customer' )->end();
+// SELECT SUBSTRING(`name`, 1, 5) FROM `customer`
+
+$sql = select( substring( val( 'Hello, world' ), 8 ) ) );
+// SELECT SUBSTRING('Hello, world', 8)
+```
 
 #### `concat`
-Documentation soon
+
+`concat( $textOrColumn1, $textOrColumn2, ...$textOrColumnN )` concatenates strings or fields. Example:
+
+```php
+$sql = select(
+    concat( 'first_name', 'last_name' )->as( 'name' )
+)->from( 'customer' )->end();
+
+// SELECT CONCAT(`first_name`, `last_name`) AS `name` FROM `customer`
+```
 
 #### `length`
-Documentation soon
+
+`length( $textOrColumn )` returns the length of a text or a (string) column. Example:
+
+```php
+$sql = select( length( 'name' ) )->from( 'customer' )->end();
+// SELECT CHAR_LENGTH(`name`) FROM `customer`
+```
 
 #### `bytes`
-Documentation soon
+
+`bytes( $textOrColumn )` returns the size in bytes of a text or a (string) column. Example:
+
+```php
+$sql = select( bytes( 'name' ) )->from( 'customer' )->end();
+// SELECT LENGTH(`name`) FROM `customer`
+```
 
 ### Null handling function
 

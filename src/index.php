@@ -950,7 +950,7 @@ function __asName( string $name, SQLType $sqlType ): string {
 
 
 function __toString( string $value ): string { // Do not use it directly. Use __toValue() instead.
-    $value = trim( $value );
+    // $value = trim( $value );
     if ( empty( $value ) ) {
         return "''";
     }
@@ -1423,7 +1423,7 @@ function upper( string|ComparableContent $textOrColumn ): LazyConversionFunction
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
-            return "UPPER($textOrColumn)";
+            return "UPPER($textOrColumn)" . $this->makeAlias( $sqlType );
         }
     };
 }
@@ -1435,7 +1435,7 @@ function lower( string|ComparableContent $textOrColumn ): LazyConversionFunction
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
-            return "LOWER($textOrColumn)";
+            return "LOWER($textOrColumn)" . $this->makeAlias( $sqlType );
         }
     };
 }
@@ -1458,12 +1458,13 @@ function substring(
             $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
             $pos = $this->pos;
             $len = $this->len;
-            return match ( $sqlType ) {
+            $f = match ( $sqlType ) {
                 SQLType::POSTGRESQL => ( $len > 0 ? "SUBSTRING($textOrColumn FROM $pos FOR $len)" : "SUBSTRING($textOrColumn FROM $pos)" ),
                 SQLType::SQLITE, SQLType::ORACLE => ( $len > 0 ? "SUBSTR($textOrColumn, $pos, $len)" : "SUBSTR($textOrColumn, $pos)" ),
                 SQLType::SQLSERVER => "SUBSTRING($textOrColumn, $pos, $len)",
                 default => ( $len > 0 ? "SUBSTRING($textOrColumn, $pos, $len)" : "SUBSTRING($textOrColumn, $pos)" ) // MySQL
             };
+            return $f . $this->makeAlias( $sqlType );
         }
     };
 }
@@ -1493,12 +1494,19 @@ function concat(
             $textOrColumn2 = __valueOrName( $this->textOrColumn2, $sqlType );
             $other = array_map( fn( $s ) => __valueOrName( $s, $sqlType ), $this->other );
 
+            $f = '';
             if ( $sqlType === SQLType::ORACLE ) {
-                return implode( ' || ', [ $textOrColumn1, $textOrColumn2, ...$other ] );
+                $f = implode( ' || ', [ $textOrColumn1, $textOrColumn2, ...$other ] );
+                $a = $this->makeAlias( $sqlType );
+                if ( ! empty( $a ) ) {
+                    $f = '(' . $f . ')' . $a;
+                }
+            } else {
+                $params = implode( ', ', [ $textOrColumn1, $textOrColumn2, ...$other ] );
+                $f = "CONCAT($params)" . $this->makeAlias( $sqlType );
             }
+            return $f;
 
-            $params = implode( ', ', [ $textOrColumn1, $textOrColumn2, ...$other ] );
-            return "CONCAT($params)";
         }
     };
 }
@@ -1513,11 +1521,12 @@ function length( string|ComparableContent $textOrColumn ): LazyConversionFunctio
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
-            return match ( $sqlType ) {
+            $f = match ( $sqlType ) {
                 SQLType::SQLSERVER => "LEN($textOrColumn)",
                 SQLType::MYSQL, SQLType::POSTGRESQL => "CHAR_LENGTH($textOrColumn)",
                 default => "LENGTH($textOrColumn)"
             };
+            return $f . $this->makeAlias( $sqlType );
         }
     };
 }
@@ -1532,10 +1541,14 @@ function bytes( string|ComparableContent $textOrColumn ): LazyConversionFunction
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
-            return match ( $sqlType ) {
-                SQLType::SQLSERVER => "LEN($textOrColumn)",
-                default => "LENGTH($textOrColumn)"
+            $f = match ( $sqlType ) {
+                SQLType::ORACLE => "VSIZE($textOrColumn)",
+                SQLType::SQLSERVER => "DATALENGTH($textOrColumn)",
+                SQLType::POSTGRESQL => "OCTET_LENGTH($textOrColumn)",
+                SQLType::SQLITE => "LENGTH(RTRIM($textOrColumn, CHAR(0)))",
+                default => "LENGTH($textOrColumn)" // MySQL
             };
+            return $f . $this->makeAlias( $sqlType );
         }
     };
 }
