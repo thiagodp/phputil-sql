@@ -315,12 +315,13 @@ $sql = select( 'name', 'email' )
 
 👉 `from()` returns a `From` object with the following methods:
 
+- `join( string $table ): Join`
 - `innerJoin( string $table ): Join`
 - `leftJoin( string $table ): Join`
 - `rightJoin( string $table ): Join`
 - `fullJoin( string $table ): Join`
-- `crossJoin( string $table ): Join`
-- `naturalJoin( string $table ): Join`
+- `crossJoin( string $table ): From`
+- `naturalJoin( string $table ): From`
 - `where( Condition $condition ): From`
 - `whereExists( Select $select ): From`
 - `groupBy( string ...$columns ): From`
@@ -980,7 +981,6 @@ $sql = select( tan( 2 ) );
         - [x] Array values inside `in` expressions.
     - [x] Aggregate functions in order by clauses
     - [x] Aggregate functions in having clauses - by using [val()](#val)
-    - [ ] Simulate certain JOIN clauses
 - [ ] Options for SQL generation
     - [ ] Add argument for avoiding escaping names
 - [x] Delete statement

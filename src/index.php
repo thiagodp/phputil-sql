@@ -576,34 +576,49 @@ class From implements DBStringable {
         return $j;
     }
 
+    /** Same as a INNER JOIN */
+    public function join( string $table ): Join {
+        return $this->makeJoin( $table, 'JOIN' );
+    }
+
     public function innerJoin( string $table ): Join {
         return $this->makeJoin( $table, 'INNER JOIN' );
     }
 
+    /** Same as a LEFT OUTER JOIN */
     public function leftJoin( string $table ): Join {
         return $this->makeJoin( $table, 'LEFT JOIN' );
     }
 
+    /** Same as a RIGHT OUTER JOIN */
     public function rightJoin( string $table ): Join {
         return $this->makeJoin( $table, 'RIGHT JOIN' );
     }
 
-    public function fullJoin( string $table ): Join {
-        return $this->makeJoin( $table, 'FULL JOIN' );
-    }
-
-    public function crossJoin( string $table ): Join {
-        return $this->makeJoin( $table, 'CROSS JOIN' );
-    }
-
     /**
-     * A natural join is **not** supported by SQL Server.
+     * A full join is **not** supported by MySQL and SQLite.
+     * Please avoid using it if you plan to migrate your queries.
      *
      * @param string $table
      * @return Join
      */
-    public function naturalJoin( string $table ): Join {
-        return $this->makeJoin( $table, 'NATURAL JOIN' );
+    public function fullJoin( string $table ): Join {
+        return $this->makeJoin( $table, 'FULL JOIN' );
+    }
+
+    public function crossJoin( string $table ): From {
+        return $this->makeJoin( $table, 'CROSS JOIN' )->end();
+    }
+
+    /**
+     * A natural join is **not** supported by SQL Server.
+     * Please avoid using it if you plan to migrate your queries.
+     *
+     * @param string $table
+     * @return Join
+     */
+    public function naturalJoin( string $table ): From {
+        return $this->makeJoin( $table, 'NATURAL JOIN' )->end();
     }
 
     public function where( Condition $condition ): self {
@@ -703,7 +718,7 @@ class From implements DBStringable {
 
 class Join implements DBStringable {
 
-    protected Condition $condition;
+    protected ?Condition $condition = null;
 
     public function __construct(
         protected From $parent,
@@ -717,6 +732,10 @@ class Join implements DBStringable {
         return $this->parent;
     }
 
+    public function end(): From {
+        return $this->parent;
+    }
+
     public function toString( SQLType $sqlType = SQLType::NONE ): string {
 
         $values = __parseSeparatedValues( $this->table );
@@ -725,7 +744,11 @@ class Join implements DBStringable {
             $declaration .= ' ' . __asName( $values[ 1 ], $sqlType );
         }
 
-        return $this->type . ' ' . $declaration . ' ON ' . $this->condition->toString( $sqlType );
+        $r = $this->type . ' ' . $declaration;
+        if ( $this->condition !== null ) {
+            $r .= ' ON ' . $this->condition->toString( $sqlType );
+        }
+        return $r;
     }
 }
 
