@@ -414,48 +414,13 @@ function __addQuotesToIdentifiers( $valueOrColumn, SQLType $sqlType ): string {
     return $valueOrColumn;
 }
 
+// FUNCTION -------------------------------------------------------------------
 
-class AggregateFunction implements DBStringable {
-
-    public function __construct(
-        public string $functionName,
-        public bool $distinct,
-        public bool|int|float|string|ComparableContent $valueOrColumn,
-        public string $alias = ''
-    ) {
-    }
-
-    public function as( string $alias ): AggregateFunction {
-        $this->alias = $alias;
-        return $this;
-    }
-
-    public function toString( SQLType $sqlType = SQLType::NONE ): string {
-
-        $valueOrColumn = trim( __valueOrName( $this->valueOrColumn, $sqlType ), ' `' );
-
-        if ( trim( $valueOrColumn ) != '*' ) {
-            $valueOrColumn = __addQuotesToIdentifiers( $valueOrColumn, $sqlType );
-        }
-
-        $alias = __asName( $this->alias, $sqlType );
-        if ( $alias != '' ) {
-            $alias = ' AS ' . $alias;
-        }
-
-        $dist = $this->distinct ? 'DISTINCT ': '';
-        $f = "{$this->functionName}({$dist}{$valueOrColumn})" . $alias;
-        return $f;
-    }
-
-}
-
-
-abstract class LazyConversionFunction implements DBStringable {
+abstract class AliasableFunction implements DBStringable {
 
     protected string $aliasValue = '';
 
-    public function as( string $alias ): LazyConversionFunction {
+    public function as( string $alias ): self {
         $this->aliasValue = $alias;
         return $this;
     }
@@ -466,6 +431,58 @@ abstract class LazyConversionFunction implements DBStringable {
         }
         return ' AS ' . __asName( $this->aliasValue, $sqlType );
     }
+}
+
+
+class BasicFunction extends AliasableFunction {
+
+    public function __construct(
+        protected string $functionName,
+        protected string|int|float|ComparableContent $valueOrColumn
+    ) {
+    }
+
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
+        $valueOrColumn = __parseExpression( $this->valueOrColumn, $sqlType );
+        return $this->functionName . '(' . $valueOrColumn . ')' . $this->makeAlias( $sqlType );
+    }
+}
+
+
+class AggregateFunction extends BasicFunction {
+
+    public function __construct(
+        string $functionName,
+        bool|int|float|string|ComparableContent $valueOrColumn,
+        string $alias = '',
+        public bool $distinct,
+    ) {
+        parent::__construct( $functionName, $valueOrColumn );
+        $this->aliasValue = $alias;
+    }
+
+    public function toString( SQLType $sqlType = SQLType::NONE ): string {
+        $valueOrColumn = __parseExpression( $this->valueOrColumn, $sqlType );
+        $dist = $this->distinct ? 'DISTINCT ': '';
+        $f = "{$this->functionName}({$dist}{$valueOrColumn})" . $this->makeAlias( $sqlType );
+        return $f;
+    }
+
+}
+
+
+function __parseExpression(
+    ComparableContent|float|int|string $valueOrColumn,
+    SQLType $sqlType = SQLType::NONE
+): string {
+
+    $valueOrColumn = trim( __valueOrName( $valueOrColumn, $sqlType ), ' `' );
+
+    if ( $valueOrColumn != '*' ) {
+        $valueOrColumn = __addQuotesToIdentifiers( $valueOrColumn, $sqlType );
+    }
+
+    return $valueOrColumn;
 }
 
 
@@ -934,7 +951,7 @@ function __parseColumnAndAlias( mixed $column, SQLType $sqlType ): string {
     }
 
     if ( $column instanceof Expression ||
-        $column instanceof LazyConversionFunction ||
+        $column instanceof AliasableFunction ||
         $column instanceof AggregateFunction ||
         $column instanceof Column
     ) {
@@ -1026,7 +1043,7 @@ function __toValue(
     } else if ( $value instanceof Column ) {
         return __asName( $value->toString( $sqlType ), $sqlType );
     } else if ( $value instanceof DBStringable ||
-        $value instanceof LazyConversionFunction
+        $value instanceof AliasableFunction
     ) {
         return $value->toString( $sqlType );
     } else if ( $value instanceof DateTimeInterface ) {
@@ -1042,7 +1059,7 @@ function __toValue(
 }
 
 function __valueOrName( mixed $str, SQLType $sqlType ): string {
-    if ( $str instanceof LazyConversionFunction ) {
+    if ( $str instanceof AliasableFunction ) {
         $str = $str->toString( $sqlType );
     } else if ( $str instanceof Value ) {
         $str = __toValue( $str->content, $sqlType );
@@ -1167,43 +1184,43 @@ function __joinConditions(
 // ----------------------------------------------------------------------------
 
 function count( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
-    return new AggregateFunction( 'COUNT', false, $column, $alias );
+    return new AggregateFunction( 'COUNT', $column, $alias, false );
 }
 
 function countDistinct( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
-    return new AggregateFunction( 'COUNT', true, $column, $alias );
+    return new AggregateFunction( 'COUNT', $column, $alias, true );
 }
 
 function sum( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
-    return new AggregateFunction( 'SUM', false, $column, $alias );
+    return new AggregateFunction( 'SUM', $column, $alias, false );
 }
 
 function sumDistinct( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
-    return new AggregateFunction( 'SUM', true, $column, $alias );
+    return new AggregateFunction( 'SUM', $column, $alias, true );
 }
 
 function avg( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
-    return new AggregateFunction( 'AVG', false, $column, $alias );
+    return new AggregateFunction( 'AVG', $column, $alias, false );
 }
 
 function avgDistinct( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
-    return new AggregateFunction( 'AVG', true, $column, $alias );
+    return new AggregateFunction( 'AVG', $column, $alias, true );
 }
 
 function min( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
-    return new AggregateFunction( 'MIN', false, $column, $alias );
+    return new AggregateFunction( 'MIN', $column, $alias, false );
 }
 
 function max( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
-    return new AggregateFunction( 'MAX', false, $column, $alias );
+    return new AggregateFunction( 'MAX', $column, $alias, false );
 }
 
 // ----------------------------------------------------------------------------
 // DATE AND TIME FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function now(): LazyConversionFunction {
-    return new class extends LazyConversionFunction {
+function now(): AliasableFunction {
+    return new class extends AliasableFunction {
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $e = match ( $sqlType ) {
@@ -1219,8 +1236,8 @@ function now(): LazyConversionFunction {
 }
 
 
-function date(): LazyConversionFunction {
-    return new class extends LazyConversionFunction {
+function date(): AliasableFunction {
+    return new class extends AliasableFunction {
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $e = match ( $sqlType ) {
@@ -1235,8 +1252,8 @@ function date(): LazyConversionFunction {
 }
 
 
-function time(): LazyConversionFunction {
-    return new class extends LazyConversionFunction {
+function time(): AliasableFunction {
+    return new class extends AliasableFunction {
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $e = match ( $sqlType ) {
@@ -1265,14 +1282,14 @@ enum Extract {
     case WEEK_DAY;
 }
 
-class ExtractFunction extends LazyConversionFunction {
+class ExtractFunction extends AliasableFunction {
 
-    protected string|ComparableContent|LazyConversionFunction $dateOrColumn;
+    protected string|ComparableContent|AliasableFunction $dateOrColumn;
 
     public function __construct( protected Extract $unit ) {}
 
 
-    public function from( string|ComparableContent|LazyConversionFunction $dateOrColumn ): ExtractFunction {
+    public function from( string|ComparableContent|AliasableFunction $dateOrColumn ): ExtractFunction {
         $this->dateOrColumn = $dateOrColumn;
         return $this;
     }
@@ -1311,7 +1328,7 @@ class ExtractFunction extends LazyConversionFunction {
 
 function extract(
     Extract $unit,
-    string|ComparableContent|LazyConversionFunction $dateOrColumn = ''
+    string|ComparableContent|AliasableFunction $dateOrColumn = ''
 ): ExtractFunction {
     if ( is_string( $dateOrColumn ) && empty( $dateOrColumn ) ) {
         return ( new ExtractFunction( $unit ) )->from( val( '' ) );
@@ -1320,15 +1337,15 @@ function extract(
 }
 
 function diffInDays(
-    string|ComparableContent|LazyConversionFunction $startDate,
-    string|ComparableContent|LazyConversionFunction $endDate
-): LazyConversionFunction {
+    string|ComparableContent|AliasableFunction $startDate,
+    string|ComparableContent|AliasableFunction $endDate
+): AliasableFunction {
 
-    return new class ( $startDate, $endDate ) extends LazyConversionFunction {
+    return new class ( $startDate, $endDate ) extends AliasableFunction {
 
         public function __construct(
-            protected string|ComparableContent|LazyConversionFunction $startDate,
-            protected string|ComparableContent|LazyConversionFunction $endDate
+            protected string|ComparableContent|AliasableFunction $startDate,
+            protected string|ComparableContent|AliasableFunction $endDate
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
@@ -1344,15 +1361,15 @@ function diffInDays(
 }
 
 function addDays(
-    string|ComparableContent|LazyConversionFunction $dateOrColumn,
-    int|string|LazyConversionFunction $value
-): LazyConversionFunction {
+    string|ComparableContent|AliasableFunction $dateOrColumn,
+    int|string|AliasableFunction $value
+): AliasableFunction {
 
-    return new class ( $dateOrColumn, $value ) extends LazyConversionFunction {
+    return new class ( $dateOrColumn, $value ) extends AliasableFunction {
 
         public function __construct(
-            protected string|ComparableContent|LazyConversionFunction $dateOrColumn,
-            protected int|string|LazyConversionFunction $value
+            protected string|ComparableContent|AliasableFunction $dateOrColumn,
+            protected int|string|AliasableFunction $value
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
@@ -1366,15 +1383,15 @@ function addDays(
 }
 
 function subDays(
-    string|ComparableContent|LazyConversionFunction $dateOrColumn,
-    int|string|LazyConversionFunction $value
-): LazyConversionFunction {
+    string|ComparableContent|AliasableFunction $dateOrColumn,
+    int|string|AliasableFunction $value
+): AliasableFunction {
 
-    return new class ( $dateOrColumn, $value ) extends LazyConversionFunction {
+    return new class ( $dateOrColumn, $value ) extends AliasableFunction {
 
         public function __construct(
-            protected string|ComparableContent|LazyConversionFunction $dateOrColumn,
-            protected int|string|LazyConversionFunction $value
+            protected string|ComparableContent|AliasableFunction $dateOrColumn,
+            protected int|string|AliasableFunction $value
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
@@ -1388,16 +1405,16 @@ function subDays(
 }
 
 function dateAdd(
-    string|ComparableContent|LazyConversionFunction $dateOrColumn,
-    int|string|ComparableContent|LazyConversionFunction $value,
+    string|ComparableContent|AliasableFunction $dateOrColumn,
+    int|string|ComparableContent|AliasableFunction $value,
     string $unit = 'day'
-): LazyConversionFunction {
+): AliasableFunction {
 
-    return new class ( $dateOrColumn, $value, $unit ) extends LazyConversionFunction {
+    return new class ( $dateOrColumn, $value, $unit ) extends AliasableFunction {
 
         public function __construct(
-            protected string|ComparableContent|LazyConversionFunction $dateOrColumn,
-            protected int|string|ComparableContent|LazyConversionFunction $value,
+            protected string|ComparableContent|AliasableFunction $dateOrColumn,
+            protected int|string|ComparableContent|AliasableFunction $value,
             protected string $unit
             ) {}
 
@@ -1417,16 +1434,16 @@ function dateAdd(
 }
 
 function dateSub(
-    string|ComparableContent|LazyConversionFunction $dateOrColumn,
-    int|string|ComparableContent|LazyConversionFunction $value,
+    string|ComparableContent|AliasableFunction $dateOrColumn,
+    int|string|ComparableContent|AliasableFunction $value,
     string $unit = 'day'
-): LazyConversionFunction {
+): AliasableFunction {
 
-    return new class ( $dateOrColumn, $value, $unit ) extends LazyConversionFunction {
+    return new class ( $dateOrColumn, $value, $unit ) extends AliasableFunction {
 
         public function __construct(
-            protected string|ComparableContent|LazyConversionFunction $dateOrColumn,
-            protected int|string|ComparableContent|LazyConversionFunction $value,
+            protected string|ComparableContent|AliasableFunction $dateOrColumn,
+            protected int|string|ComparableContent|AliasableFunction $value,
             protected string $unit
             ) {}
 
@@ -1449,8 +1466,8 @@ function dateSub(
 // STRING FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function upper( string|ComparableContent $textOrColumn ): LazyConversionFunction {
-    return new class ( $textOrColumn ) extends LazyConversionFunction {
+function upper( string|ComparableContent $textOrColumn ): AliasableFunction {
+    return new class ( $textOrColumn ) extends AliasableFunction {
 
         public function __construct( protected string|ComparableContent $textOrColumn ) {}
 
@@ -1461,8 +1478,8 @@ function upper( string|ComparableContent $textOrColumn ): LazyConversionFunction
     };
 }
 
-function lower( string|ComparableContent $textOrColumn ): LazyConversionFunction {
-    return new class ( $textOrColumn ) extends LazyConversionFunction {
+function lower( string|ComparableContent $textOrColumn ): AliasableFunction {
+    return new class ( $textOrColumn ) extends AliasableFunction {
 
         public function __construct( protected string|ComparableContent $textOrColumn ) {}
 
@@ -1477,9 +1494,9 @@ function substring(
     string|ComparableContent $textOrColumn,
     int|string $pos = 1,
     int $len = 0
-    ): LazyConversionFunction {
+    ): AliasableFunction {
 
-    return new class ( $textOrColumn, $pos, $len ) extends LazyConversionFunction {
+    return new class ( $textOrColumn, $pos, $len ) extends AliasableFunction {
 
         public function __construct(
             protected string|ComparableContent $textOrColumn,
@@ -1507,9 +1524,9 @@ function concat(
     string|ComparableContent $textOrColumn1,
     string|ComparableContent $textOrColumn2,
     string|ComparableContent ...$other
-    ): LazyConversionFunction {
+    ): AliasableFunction {
 
-    return new class (  $textOrColumn1, $textOrColumn2, ...$other ) extends LazyConversionFunction {
+    return new class (  $textOrColumn1, $textOrColumn2, ...$other ) extends AliasableFunction {
 
         /** @var string[]|\phputil\sql\ComparableContent[] */
         protected $other;
@@ -1545,8 +1562,8 @@ function concat(
 }
 
 
-function length( string|ComparableContent $textOrColumn ): LazyConversionFunction {
-    return new class ( $textOrColumn ) extends LazyConversionFunction {
+function length( string|ComparableContent $textOrColumn ): AliasableFunction {
+    return new class ( $textOrColumn ) extends AliasableFunction {
 
         public function __construct(
             protected string|ComparableContent $textOrColumn
@@ -1565,8 +1582,8 @@ function length( string|ComparableContent $textOrColumn ): LazyConversionFunctio
 }
 
 
-function bytes( string|ComparableContent $textOrColumn ): LazyConversionFunction {
-    return new class ( $textOrColumn ) extends LazyConversionFunction {
+function bytes( string|ComparableContent $textOrColumn ): AliasableFunction {
+    return new class ( $textOrColumn ) extends AliasableFunction {
 
         public function __construct(
             protected string|ComparableContent $textOrColumn
@@ -1593,8 +1610,8 @@ function bytes( string|ComparableContent $textOrColumn ): LazyConversionFunction
 function ifNull(
     string|ComparableContent $valueOrColumm,
     string|int|float|bool|ComparableContent $valueOrColumnIfNull
-    ): LazyConversionFunction {
-    return new class ( $valueOrColumm, $valueOrColumnIfNull ) extends LazyConversionFunction {
+    ): AliasableFunction {
+    return new class ( $valueOrColumm, $valueOrColumnIfNull ) extends AliasableFunction {
 
         public function __construct(
             protected string|ComparableContent $valueOrColumm,
@@ -1617,39 +1634,12 @@ function ifNull(
 // MATHEMATICAL FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function __parseExpression(
-    ComparableContent|float|int|string $valueOrColumn,
-    SQLType $sqlType = SQLType::NONE
-): string {
-
-    $valueOrColumn = trim( __valueOrName( $valueOrColumn, $sqlType ), ' `' );
-
-    if ( $valueOrColumn != '*' ) {
-        $valueOrColumn = __addQuotesToIdentifiers( $valueOrColumn, $sqlType );
-    }
-
-    return $valueOrColumn;
+function abs( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
+    return new BasicFunction( 'ABS', $valueOrColumn );
 }
 
-class ValueOrColumnBasedOnDemandFunction extends LazyConversionFunction {
-    public function __construct(
-        protected string $functionName,
-        protected string|int|float|ComparableContent $valueOrColumn
-        ) {}
-
-    public function toString( SQLType $sqlType = SQLType::NONE ): string {
-        $valueOrColumn = __parseExpression( $this->valueOrColumn, $sqlType );
-        return $this->functionName . '(' . $valueOrColumn . ')' . $this->makeAlias( $sqlType );
-    }
-}
-
-
-function abs( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
-    return new ValueOrColumnBasedOnDemandFunction( 'ABS', $valueOrColumn );
-}
-
-function round( string|int|float|ComparableContent $valueOrColumn, ?int $decimals = null ): LazyConversionFunction {
-    return new class ( $valueOrColumn, $decimals ) extends LazyConversionFunction {
+function round( string|int|float|ComparableContent $valueOrColumn, ?int $decimals = null ): AliasableFunction {
+    return new class ( $valueOrColumn, $decimals ) extends AliasableFunction {
 
         public function __construct(
             protected string|int|float|ComparableContent $valueOrColumn,
@@ -1667,8 +1657,8 @@ function round( string|int|float|ComparableContent $valueOrColumn, ?int $decimal
     };
 }
 
-function ceil( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
-    return new class ( $valueOrColumn ) extends LazyConversionFunction {
+function ceil( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
+    return new class ( $valueOrColumn ) extends AliasableFunction {
 
         public function __construct(
             protected string|int|float|ComparableContent $valueOrColumn
@@ -1685,15 +1675,15 @@ function ceil( string|int|float|ComparableContent $valueOrColumn ): LazyConversi
     };
 }
 
-function floor( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
-    return new ValueOrColumnBasedOnDemandFunction( 'FLOOR', $valueOrColumn );
+function floor( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
+    return new BasicFunction( 'FLOOR', $valueOrColumn );
 }
 
 function power(
     string|int|float|ComparableContent $base,
     string|int|float|ComparableContent $exponent
-    ): LazyConversionFunction {
-    return new class ( $base, $exponent ) extends LazyConversionFunction {
+    ): AliasableFunction {
+    return new class ( $base, $exponent ) extends AliasableFunction {
 
         public function __construct(
             protected string|int|float|ComparableContent $base,
@@ -1708,20 +1698,20 @@ function power(
     };
 }
 
-function sqrt( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
-    return new ValueOrColumnBasedOnDemandFunction( 'SQRT', $valueOrColumn );
+function sqrt( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
+    return new BasicFunction( 'SQRT', $valueOrColumn );
 }
 
-function sin( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
-    return new ValueOrColumnBasedOnDemandFunction( 'SIN', $valueOrColumn );
+function sin( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
+    return new BasicFunction( 'SIN', $valueOrColumn );
 }
 
-function cos( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
-    return new ValueOrColumnBasedOnDemandFunction( 'COS', $valueOrColumn );
+function cos( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
+    return new BasicFunction( 'COS', $valueOrColumn );
 }
 
-function tan( string|int|float|ComparableContent $valueOrColumn ): LazyConversionFunction {
-    return new ValueOrColumnBasedOnDemandFunction( 'TAN', $valueOrColumn );
+function tan( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
+    return new BasicFunction( 'TAN', $valueOrColumn );
 }
 
 // ----------------------------------------------------------------------------
@@ -1918,7 +1908,7 @@ class UpdateCommand implements DBStringable, Stringable {
                 if ( $valueOrColumn instanceof ComparableContent ||
                     $valueOrColumn instanceof Param ||
                     $valueOrColumn instanceof AggregateFunction ||
-                    $valueOrColumn instanceof LazyConversionFunction
+                    $valueOrColumn instanceof AliasableFunction
                 ) {
                     $valueOrColumn = __toValue( $valueOrColumn, $sqlType );
                 } else {

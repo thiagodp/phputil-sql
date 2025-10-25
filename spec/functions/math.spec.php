@@ -72,6 +72,11 @@ describe( 'math functions', function() {
                 expect( $r )->toBe( 'ROUND(`a`, 2) AS `foo`' );
             } );
 
+            // it( 'accepts another function', function() {
+            //     $r = round( tan( 2 ), 2 )->toString( SQLType::MYSQL );
+            //     expect( $r )->toBe( 'ROUND(`a`, `b`)' );
+            // } );
+
         } );
 
     } );
