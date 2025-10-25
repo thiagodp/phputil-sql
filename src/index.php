@@ -555,6 +555,9 @@ class From implements DBStringable {
 
     /** @var ColumnOrdering[] $columnOrderings */
     protected $columnOrderings = [];
+
+    /** @var array<int, array{Select, bool}> */
+    protected $unions = [];
     protected ?Select $unionSelect = null;
     protected bool $isUnionDistinct = false;
 
@@ -647,16 +650,21 @@ class From implements DBStringable {
         return $this;
     }
 
-    public function union( Select $select ): self {
-        $this->isUnionDistinct = false;
-        $this->unionSelect = $select;
+    protected function makeUnion( Select $unionSelect, bool $isUnionDistinct ): self {
+        $this->unions []= [ $unionSelect, $isUnionDistinct ];
         return $this;
     }
 
+    protected function makeUnionString( Select $unionSelect, bool $isUnionDistinct, SQLType $sqlType ): string {
+        return ' UNION ' . ( $isUnionDistinct ? 'DISTINCT ' : '' ) . $unionSelect->toString( $sqlType );
+    }
+
+    public function union( Select $select ): self {
+        return $this->makeUnion( $select, false );
+    }
+
     public function unionDistinct( Select $select ): self {
-        $this->isUnionDistinct = true;
-        $this->unionSelect = $select;
-        return $this;
+        return $this->makeUnion( $select, true );
     }
 
     public function end(): Select {
@@ -705,8 +713,10 @@ class From implements DBStringable {
             $s .= $limitOffset;
         }
 
-        if ( $this->unionSelect !== null ) {
-            $s .= ' UNION ' . ( $this->isUnionDistinct ? 'DISTINCT ' : '' ) . $this->unionSelect->toString( $sqlType );
+        if (  ! empty( $this->unions ) ) {
+            foreach ( $this->unions as [ $unionSelect, $isUnionDistinct ] ) {
+                $s .= $this->makeUnionString( $unionSelect, $isUnionDistinct, $sqlType );
+            }
         }
 
         return $s;
