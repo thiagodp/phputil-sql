@@ -23,4 +23,13 @@ describe( 'null handling function', function() {
         expect( $r )->toBe( "COALESCE(`field1`, FALSE)" );
     } );
 
+    it( 'accepts a function as field', function() {
+        $r = ifNull( ifNull('a', 'b'), val( false ) )->toString( SQLType::MYSQL );
+        expect( $r )->toBe( "COALESCE(COALESCE(`a`, `b`), FALSE)" );
+    } );
+
+    it( 'accepts a function as value', function() {
+        $r = ifNull( 'a', concat( 'b', 'c' ) )->toString( SQLType::MYSQL );
+        expect( $r )->toBe( "COALESCE(`a`, CONCAT(`b`, `c`))" );
+    } );
 } );

@@ -1598,15 +1598,15 @@ function bytes( string|ComparableContent|AliasableExpression $textOrColumn ): Al
 // ----------------------------------------------------------------------------
 
 function ifNull(
-    string|ComparableContent $valueOrColumm,
-    string|int|float|bool|ComparableContent $valueOrColumnIfNull
-    ): AliasableExpression {
+    string|ComparableContent|AliasableExpression $valueOrColumm,
+    bool|int|float|string|ComparableContent|AliasableExpression $valueOrColumnIfNull
+): AliasableExpression {
     return new class ( $valueOrColumm, $valueOrColumnIfNull ) extends AliasableExpression {
 
         public function __construct(
-            protected string|ComparableContent $valueOrColumm,
-            protected string|int|float|bool|ComparableContent $valueOrColumnIfNull
-            ) {}
+            protected string|ComparableContent|AliasableExpression $valueOrColumm,
+            protected bool|int|float|string|ComparableContent|AliasableExpression $valueOrColumnIfNull
+        ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $valueOrColumm = __valueOrName( $this->valueOrColumm, $sqlType );
