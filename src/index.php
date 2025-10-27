@@ -621,7 +621,7 @@ class From implements DBStringable {
      * Please avoid using it if you plan to migrate your queries.
      *
      * @param string $table
-     * @return Join
+     * @return From
      */
     public function naturalJoin( string $table ): From {
         return $this->makeJoin( $table, 'NATURAL JOIN' )->end();
@@ -882,7 +882,7 @@ class ConditionWrapper implements Condition {
 /**
  * Get quote characters used by a certain database/sql type.
  *
- * @param \phputil\sql\SQLType $sqlType
+ * @param SQLType $sqlType
  * @return string[]
  */
 function __getQuoteCharacters( SQLType $sqlType = SQLType::NONE ): array {
@@ -910,7 +910,7 @@ function __parseSeparatedValues( string $column ): array {
  * Converts an array of conditions to a string.
  *
  * @param Condition[] $conditions
- * @param \phputil\sql\SQLType $sqlType
+ * @param SQLType $sqlType
  * @return string
  */
 function __conditionsToString( array $conditions, SQLType $sqlType ): string {
@@ -936,8 +936,7 @@ function __parseColumnAndAlias( mixed $column, SQLType $sqlType ): string {
         $column = $c; // E.g. Aggregate Function
     }
 
-    if ( $column instanceof Expression ||
-        $column instanceof AliasableExpression ||
+    if ( $column instanceof AliasableExpression ||
         $column instanceof AggregateFunction ||
         $column instanceof Column
     ) {
@@ -1518,7 +1517,7 @@ function concat(
 
     return new class (  $textOrColumn1, $textOrColumn2, ...$other ) extends AliasableExpression {
 
-        /** @var string[]|\phputil\sql\ComparableContent[] */
+        /** @var string[]|ComparableContent[] */
         protected $other;
 
         public function __construct(

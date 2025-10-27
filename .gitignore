@@ -1,3 +1,4 @@
 vendor
 examples.php
 todo.txt
+*.cache

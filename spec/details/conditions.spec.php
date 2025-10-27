@@ -237,4 +237,42 @@ describe( 'conditions', function() {
 
     } );
 
+
+    describe( 'wrap', function() {
+
+        it( 'add parenthesis around the condition', function() {
+            $r = wrap( col( 'a' )->equalTo( 1 ) )->toString();
+            expect( $r )->toBe( '(a = 1)' );
+        } );
+
+        it( 'supports and() after the wrapper', function() {
+            $r = wrap( col( 'a' )->equalTo( 1 ) )
+                ->and( col( 'b' )->equalTo( 2 ) )
+                ->toString();
+            expect( $r )->toBe( '(a = 1) AND b = 2' );
+        } );
+
+        it( 'supports andNot() after the wrapper', function() {
+            $r = wrap( col( 'a' )->equalTo( 1 ) )
+                ->andNot( col( 'b' )->equalTo( 2 ) )
+                ->toString();
+            expect( $r )->toBe( '(a = 1) AND NOT b = 2' );
+        } );
+
+        it( 'supports or() after the wrapper', function() {
+            $r = wrap( col( 'a' )->equalTo( 1 ) )
+                ->or( col( 'b' )->equalTo( 2 ) )
+                ->toString();
+            expect( $r )->toBe( '(a = 1) OR b = 2' );
+        } );
+
+        it( 'supports orNot() after the wrapper', function() {
+            $r = wrap( col( 'a' )->equalTo( 1 ) )
+                ->orNot( col( 'b' )->equalTo( 2 ) )
+                ->toString();
+            expect( $r )->toBe( '(a = 1) OR NOT b = 2' );
+        } );
+
+    } );
+
 } );

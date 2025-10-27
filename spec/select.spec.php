@@ -68,5 +68,18 @@ describe( 'select', function() {
         expect( $r )->toBe( 'SELECT 1, one, a.*, COUNT(id)' );
     } );
 
+    it( 'is convertible to string', function() {
+        $r = (string) select();
+        expect( $r )->toBe( 'SELECT *' );
+    } );
 
+
+    describe( 'selectDistict', function() {
+
+        it( 'can select with mixed content', function() {
+            $r = selectDistinct( 1, 'one', 'a.*', count('id')  )->toString();
+            expect( $r )->toBe( 'SELECT DISTINCT 1, one, a.*, COUNT(id)' );
+        } );
+
+    } );
 } );

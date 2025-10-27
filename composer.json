@@ -18,8 +18,9 @@
         "phpstan/phpstan": "^2.1"
     },
     "scripts": {
-        "check": "phpstan",
+        "check": "phpstan analyze",
         "test": "kahlan --reporter=tree",
-        "cov": "kahlan --coverage=4"
+        "cov": "kahlan --coverage=4",
+        "dep": "composer depends php"
     }
 }

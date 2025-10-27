@@ -62,6 +62,16 @@ describe( 'math functions', function() {
                 expect( $r )->toBe( 'ROUND(10, 2)' );
             } );
 
+            it( 'accepts a int value', function() {
+                $r = round( 10, 2 )->toString( SQLType::MYSQL );
+                expect( $r )->toBe( 'ROUND(10, 2)' );
+            } );
+
+            it( 'accepts a float value', function() {
+                $r = round( 10.5, 2 )->toString( SQLType::MYSQL );
+                expect( $r )->toBe( 'ROUND(10.5, 2)' );
+            } );
+
             it( 'accepts an expression with fields', function() {
                 $r = round( 'a + b * c', 2 )->toString( SQLType::MYSQL );
                 expect( $r )->toBe( 'ROUND(`a` + `b` * `c`, 2)' );
