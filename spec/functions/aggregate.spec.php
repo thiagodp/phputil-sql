@@ -53,6 +53,11 @@ describe( 'aggregate functions', function() {
         expect( $r )->toBe( "COUNT(`t1`.`a` * (`t1`.`b` + `t1`.`c`) - (`t2`.`d` / `t2`.`e`))" );
     } );
 
+    it( 'accepts another function', function() {
+        $r = count( ifNull( 'a', 'b' ) )->toString( SQLType::MYSQL );
+        expect( $r )->toBe( "COUNT(COALESCE(`a`, `b`))" );
+    } );
+
     describe( 'basic function checking', function() {
 
         it( 'has count()', function() {

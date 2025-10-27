@@ -454,7 +454,7 @@ class AggregateFunction extends BasicExpression {
 
     public function __construct(
         string $functionName,
-        bool|int|float|string|ComparableContent $valueOrColumn,
+        bool|int|float|string|ComparableContent|AliasableExpression $valueOrColumn,
         string $alias = '',
         bool $distinct = false,
     ) {
@@ -1169,35 +1169,35 @@ function __joinConditions(
 // AGGREGATE FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function count( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
+function count( string|ComparableContent|AliasableExpression $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'COUNT', $column, $alias, false );
 }
 
-function countDistinct( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
+function countDistinct( string|ComparableContent|AliasableExpression $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'COUNT', $column, $alias, true );
 }
 
-function sum( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
+function sum( string|ComparableContent|AliasableExpression $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'SUM', $column, $alias, false );
 }
 
-function sumDistinct( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
+function sumDistinct( string|ComparableContent|AliasableExpression $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'SUM', $column, $alias, true );
 }
 
-function avg( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
+function avg( string|ComparableContent|AliasableExpression $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'AVG', $column, $alias, false );
 }
 
-function avgDistinct( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
+function avgDistinct( string|ComparableContent|AliasableExpression $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'AVG', $column, $alias, true );
 }
 
-function min( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
+function min( string|ComparableContent|AliasableExpression $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'MIN', $column, $alias, false );
 }
 
-function max( string|ComparableContent $column, string $alias = '' ): AggregateFunction {
+function max( string|ComparableContent|AliasableExpression $column, string $alias = '' ): AggregateFunction {
     return new AggregateFunction( 'MAX', $column, $alias, false );
 }
 
