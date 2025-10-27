@@ -1,4 +1,6 @@
 [![Packagist Version](https://img.shields.io/packagist/v/phputil/sql?style=for-the-badge&color=green)](https://github.com/thiagodp/sql/commits/main/)
+[![GitHub License](https://img.shields.io/github/license/thiagodp/phputil-sql?style=for-the-badge&color=green)](https://github.com/thiagodp/phputil-sql/blob/main/LICENSE)
+[![Build](https://github.com/thiagodp/phputil-sql/actions/workflows/ci.yml/badge.svg?style=for-the-badge&color=green)](https://github.com/thiagodp/phputil-sql/actions)
 
 # phputil/sql
 
@@ -29,7 +31,7 @@ This library is particularly useful for:
 
 ## Install
 
-> Requires PHP 8.0+
+> Requires PHP 8.1+
 
 ```bash
 composer require phputil/sql
