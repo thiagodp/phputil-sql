@@ -20,6 +20,10 @@ describe( 'string functions', function() {
             expect( $r )->toBe( 'UPPER(`a`) AS `foo`' );
         } );
 
+        it( 'accepts another function as value', function() {
+            $r = upper( concat( 'a', 'b' ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'UPPER(CONCAT(`a`, `b`))' );
+        } );
     } );
 
 
@@ -40,6 +44,10 @@ describe( 'string functions', function() {
             expect( $r )->toBe( 'LOWER(`a`) AS `foo`' );
         } );
 
+        it( 'accepts another function as value', function() {
+            $r = lower( concat( 'a', 'b' ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'LOWER(CONCAT(`a`, `b`))' );
+        } );
     } );
 
 
@@ -65,6 +73,10 @@ describe( 'string functions', function() {
             expect( $r )->toBe( 'SUBSTRING(`a`, 1)' );
         } );
 
+        it( 'accepts another function as value', function() {
+            $r = substring( concat( 'a', 'b' ), 1 )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'SUBSTRING(CONCAT(`a`, `b`), 1)' );
+        } );
     } );
 
 
@@ -96,6 +108,20 @@ describe( 'string functions', function() {
             expect( $r )->toBe( 'CONCAT(`a`, `b`, `c`, `d`, `e`)' );
         } );
 
+        it( 'accepts another function as first argument', function() {
+            $r = concat( concat( 'a', 'b' ), 'c' )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'CONCAT(CONCAT(`a`, `b`), `c`)' );
+        } );
+
+        it( 'accepts another function as second argument', function() {
+            $r = concat( 'a', concat( 'b' , 'c' ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'CONCAT(`a`, CONCAT(`b`, `c`))' );
+        } );
+
+        it( 'accepts another function as third argument', function() {
+            $r = concat( 'a', 'b', concat( 'c' , 'd' ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'CONCAT(`a`, `b`, CONCAT(`c`, `d`))' );
+        } );
     } );
 
 
@@ -114,6 +140,11 @@ describe( 'string functions', function() {
         it( 'can have an alias', function() {
             $r = length( 'a' )->as( 'foo' )->toString( SQLType::MYSQL );
             expect( $r )->toBe( 'CHAR_LENGTH(`a`) AS `foo`' );
+        } );
+
+        it( 'accepts another function as value', function() {
+            $r = length( concat( 'a', 'b' ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'CHAR_LENGTH(CONCAT(`a`, `b`))' );
         } );
 
     } );
@@ -136,5 +167,9 @@ describe( 'string functions', function() {
             expect( $r )->toBe( 'LENGTH(`a`) AS `foo`' );
         } );
 
+        it( 'accepts another function as value', function() {
+            $r = bytes( concat( 'a', 'b' ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'LENGTH(CONCAT(`a`, `b`))' );
+        } );
     } );
 } );

@@ -1452,10 +1452,12 @@ function dateSub(
 // STRING FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function upper( string|ComparableContent $textOrColumn ): AliasableExpression {
+function upper( string|ComparableContent|AliasableExpression $textOrColumn ): AliasableExpression {
     return new class ( $textOrColumn ) extends AliasableExpression {
 
-        public function __construct( protected string|ComparableContent $textOrColumn ) {}
+        public function __construct(
+            protected string|ComparableContent|AliasableExpression $textOrColumn
+        ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
@@ -1464,10 +1466,12 @@ function upper( string|ComparableContent $textOrColumn ): AliasableExpression {
     };
 }
 
-function lower( string|ComparableContent $textOrColumn ): AliasableExpression {
+function lower( string|ComparableContent|AliasableExpression $textOrColumn ): AliasableExpression {
     return new class ( $textOrColumn ) extends AliasableExpression {
 
-        public function __construct( protected string|ComparableContent $textOrColumn ) {}
+        public function __construct(
+            protected string|ComparableContent|AliasableExpression $textOrColumn
+        ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $textOrColumn = __valueOrName( $this->textOrColumn, $sqlType );
@@ -1477,15 +1481,15 @@ function lower( string|ComparableContent $textOrColumn ): AliasableExpression {
 }
 
 function substring(
-    string|ComparableContent $textOrColumn,
+    string|ComparableContent|AliasableExpression $textOrColumn,
     int|string $pos = 1,
     int $len = 0
-    ): AliasableExpression {
+): AliasableExpression {
 
     return new class ( $textOrColumn, $pos, $len ) extends AliasableExpression {
 
         public function __construct(
-            protected string|ComparableContent $textOrColumn,
+            protected string|ComparableContent|AliasableExpression $textOrColumn,
             protected int|string $pos = 1,
             protected int $len = 0
             ) {}
@@ -1507,9 +1511,9 @@ function substring(
 
 
 function concat(
-    string|ComparableContent $textOrColumn1,
-    string|ComparableContent $textOrColumn2,
-    string|ComparableContent ...$other
+    string|ComparableContent|AliasableExpression $textOrColumn1,
+    string|ComparableContent|AliasableExpression $textOrColumn2,
+    string|ComparableContent|AliasableExpression ...$other
 ): AliasableExpression {
 
     return new class (  $textOrColumn1, $textOrColumn2, ...$other ) extends AliasableExpression {
@@ -1518,9 +1522,9 @@ function concat(
         protected $other;
 
         public function __construct(
-            protected string|ComparableContent $textOrColumn1,
-            protected string|ComparableContent $textOrColumn2,
-            string|ComparableContent ...$other
+            protected string|ComparableContent|AliasableExpression $textOrColumn1,
+            protected string|ComparableContent|AliasableExpression $textOrColumn2,
+            string|ComparableContent|AliasableExpression ...$other
             ) {
             $this->other = $other;
         }
@@ -1548,11 +1552,11 @@ function concat(
 }
 
 
-function length( string|ComparableContent $textOrColumn ): AliasableExpression {
+function length( string|ComparableContent|AliasableExpression $textOrColumn ): AliasableExpression {
     return new class ( $textOrColumn ) extends AliasableExpression {
 
         public function __construct(
-            protected string|ComparableContent $textOrColumn
+            protected string|ComparableContent|AliasableExpression $textOrColumn
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
@@ -1568,11 +1572,11 @@ function length( string|ComparableContent $textOrColumn ): AliasableExpression {
 }
 
 
-function bytes( string|ComparableContent $textOrColumn ): AliasableExpression {
+function bytes( string|ComparableContent|AliasableExpression $textOrColumn ): AliasableExpression {
     return new class ( $textOrColumn ) extends AliasableExpression {
 
         public function __construct(
-            protected string|ComparableContent $textOrColumn
+            protected string|ComparableContent|AliasableExpression $textOrColumn
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
