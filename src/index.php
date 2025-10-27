@@ -208,7 +208,7 @@ class ComparableContent implements DBStringable {
     }
 
     protected function makeSpecialLike(
-        string|ComparableContent|Value|Param $rightSide,
+        string|ComparableContent|Value|CommandParam $rightSide,
         bool $addToTheBeginning,
         bool $addToTheEnd,
     ): Condition {
@@ -239,15 +239,15 @@ class ComparableContent implements DBStringable {
         return $this->like( $rightSide );
     }
 
-    public function startWith( string|ComparableContent|Value|Param $rightSide ): Condition {
+    public function startWith( string|ComparableContent|Value|CommandParam $rightSide ): Condition {
         return $this->makeSpecialLike( $rightSide, false, true );
     }
 
-    public function endWith( string|ComparableContent|Value|Param $rightSide ): Condition {
+    public function endWith( string|ComparableContent|Value|CommandParam $rightSide ): Condition {
         return $this->makeSpecialLike( $rightSide, true, false );
     }
 
-    public function contain( string|ComparableContent|Value|Param $rightSide ): Condition {
+    public function contain( string|ComparableContent|Value|CommandParam $rightSide ): Condition {
         return $this->makeSpecialLike( $rightSide, true, true );
     }
 
@@ -360,31 +360,21 @@ class Raw implements Stringable {
 // Functions and expressions
 // ----------------------------------------------------------------------------
 
-class Expression implements DBStringable {
+function __parseExpression(
+    int|float|string|AliasableExpression|ComparableContent $valueOrColumn,
+    SQLType $sqlType = SQLType::NONE
+): string {
 
-    public function __construct(
-        public string $name,
-        public bool $isFunction = false,
-        public string $arg = '',
-        public string $alias = ''
-    ) {
+    if ( $valueOrColumn instanceof AliasableExpression ) {
+        return $valueOrColumn->toString( $sqlType );
     }
 
-    public function toString( SQLType $sqlType = SQLType::NONE ): string {
+    $valueOrColumn = trim( __valueOrName( $valueOrColumn, $sqlType ), ' `' );
 
-        $alias = '';
-        if ( ! empty( $this->alias ) ) {
-            $alias = __asName( $this->alias, $sqlType );
-            $alias = ' AS ' . $alias;
-        }
-
-        $arg = __valueOrName( $this->arg, $sqlType );
-
-        if ( $this->isFunction ) {
-            return $this->name . '(' . $arg . ')' . $alias;
-        }
-        return $this->name . $arg . $alias;
+    if ( $valueOrColumn != '*' ) {
+        $valueOrColumn = __addQuotesToIdentifiers( $valueOrColumn, $sqlType );
     }
+    return $valueOrColumn;
 }
 
 
@@ -414,9 +404,8 @@ function __addQuotesToIdentifiers( $valueOrColumn, SQLType $sqlType ): string {
     return $valueOrColumn;
 }
 
-// FUNCTION -------------------------------------------------------------------
 
-abstract class AliasableFunction implements DBStringable {
+abstract class AliasableExpression implements DBStringable {
 
     protected string $aliasValue = '';
 
@@ -434,55 +423,52 @@ abstract class AliasableFunction implements DBStringable {
 }
 
 
-class BasicFunction extends AliasableFunction {
+class BasicExpression extends AliasableExpression {
 
     public function __construct(
-        protected string $functionName,
-        protected string|int|float|ComparableContent $valueOrColumn
+        protected string $name,
+        protected int|float|string|ComparableContent|AliasableExpression $argument,
+        protected bool $isFunction = false,
+        string $alias = ''
     ) {
+        $this->aliasValue = $alias;
+    }
+
+    protected function getArgument( SQLType $sqlType ): string {
+        return __parseExpression( $this->argument, $sqlType );
     }
 
     public function toString( SQLType $sqlType = SQLType::NONE ): string {
-        $valueOrColumn = __parseExpression( $this->valueOrColumn, $sqlType );
-        return $this->functionName . '(' . $valueOrColumn . ')' . $this->makeAlias( $sqlType );
+        $arg = $this->getArgument( $sqlType );
+        if ( ! $this->isFunction ) {
+            return $this->name . $arg . $this->makeAlias( $sqlType );
+        }
+        return $this->name . '(' . $arg . ')' . $this->makeAlias( $sqlType );
     }
 }
 
 
-class AggregateFunction extends BasicFunction {
+class AggregateFunction extends BasicExpression {
+
+    protected bool $distinct = false;
 
     public function __construct(
         string $functionName,
         bool|int|float|string|ComparableContent $valueOrColumn,
         string $alias = '',
-        public bool $distinct,
+        bool $distinct = false,
     ) {
-        parent::__construct( $functionName, $valueOrColumn );
-        $this->aliasValue = $alias;
+        parent::__construct( $functionName, $valueOrColumn, true, $alias );
+        $this->distinct = $distinct;
     }
 
     public function toString( SQLType $sqlType = SQLType::NONE ): string {
-        $valueOrColumn = __parseExpression( $this->valueOrColumn, $sqlType );
+        $valueOrColumn = __parseExpression( $this->argument, $sqlType );
         $dist = $this->distinct ? 'DISTINCT ': '';
-        $f = "{$this->functionName}({$dist}{$valueOrColumn})" . $this->makeAlias( $sqlType );
+        $f = "{$this->name}({$dist}{$valueOrColumn})" . $this->makeAlias( $sqlType );
         return $f;
     }
 
-}
-
-
-function __parseExpression(
-    ComparableContent|float|int|string $valueOrColumn,
-    SQLType $sqlType = SQLType::NONE
-): string {
-
-    $valueOrColumn = trim( __valueOrName( $valueOrColumn, $sqlType ), ' `' );
-
-    if ( $valueOrColumn != '*' ) {
-        $valueOrColumn = __addQuotesToIdentifiers( $valueOrColumn, $sqlType );
-    }
-
-    return $valueOrColumn;
 }
 
 
@@ -951,7 +937,7 @@ function __parseColumnAndAlias( mixed $column, SQLType $sqlType ): string {
     }
 
     if ( $column instanceof Expression ||
-        $column instanceof AliasableFunction ||
+        $column instanceof AliasableExpression ||
         $column instanceof AggregateFunction ||
         $column instanceof Column
     ) {
@@ -1043,7 +1029,7 @@ function __toValue(
     } else if ( $value instanceof Column ) {
         return __asName( $value->toString( $sqlType ), $sqlType );
     } else if ( $value instanceof DBStringable ||
-        $value instanceof AliasableFunction
+        $value instanceof AliasableExpression
     ) {
         return $value->toString( $sqlType );
     } else if ( $value instanceof DateTimeInterface ) {
@@ -1059,7 +1045,7 @@ function __toValue(
 }
 
 function __valueOrName( mixed $str, SQLType $sqlType ): string {
-    if ( $str instanceof AliasableFunction ) {
+    if ( $str instanceof AliasableExpression ) {
         $str = $str->toString( $sqlType );
     } else if ( $str instanceof Value ) {
         $str = __toValue( $str->content, $sqlType );
@@ -1103,7 +1089,7 @@ function val( mixed $value ): ComparableContent {
     return new ComparableContent( $v );
 }
 
-class Param implements Stringable {
+class CommandParam implements Stringable {
 
     public function __construct(
         public string $value
@@ -1115,7 +1101,7 @@ class Param implements Stringable {
     }
 }
 
-function param( string $value = '?' ): Param {
+function param( string $value = '?' ): CommandParam {
     $value = trim( $value );
     if ( $value === '' || $value === ':' ) {
         $value = '?';
@@ -1123,7 +1109,7 @@ function param( string $value = '?' ): Param {
         $value = ':' . $value;
     }
     // return val( $value );
-    return new Param( $value );
+    return new CommandParam( $value );
 }
 
 function quote( string $value ): string {
@@ -1219,15 +1205,15 @@ function max( string|ComparableContent $column, string $alias = '' ): AggregateF
 // DATE AND TIME FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function now(): AliasableFunction {
-    return new class extends AliasableFunction {
+function now(): AliasableExpression {
+    return new class extends AliasableExpression {
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $e = match ( $sqlType ) {
-                SQLType::SQLITE => new Expression( 'DATETIME', true, "'now'", $this->aliasValue ),
-                SQLType::ORACLE => new Expression( 'SYSDATE', false, '', $this->aliasValue  ),
-                SQLType::SQLSERVER => new Expression( 'CURRENT_TIMESTAMP', false, '', $this->aliasValue  ),
-                default => new Expression( 'NOW', true, '', $this->aliasValue ) // MySQL, PostgreSQL
+                SQLType::SQLITE => new BasicExpression( 'DATETIME', "'now'", true, $this->aliasValue ),
+                SQLType::ORACLE => new BasicExpression( 'SYSDATE', '', false, $this->aliasValue  ),
+                SQLType::SQLSERVER => new BasicExpression( 'CURRENT_TIMESTAMP', '', false, $this->aliasValue  ),
+                default => new BasicExpression( 'NOW', '', true, $this->aliasValue ) // MySQL, PostgreSQL
             };
             return $e->toString( $sqlType );
         }
@@ -1236,14 +1222,14 @@ function now(): AliasableFunction {
 }
 
 
-function date(): AliasableFunction {
-    return new class extends AliasableFunction {
+function date(): AliasableExpression {
+    return new class extends AliasableExpression {
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $e = match ( $sqlType ) {
-                SQLType::ORACLE => new Expression( 'SYSDATE', false ),
-                SQLType::SQLSERVER => new Expression( 'GETDATE', true ),
-                default => new Expression( 'CURRENT_DATE', false ) // MySQL, PostgreSQL, SQLite
+                SQLType::ORACLE => new BasicExpression( 'SYSDATE', '', false ),
+                SQLType::SQLSERVER => new BasicExpression( 'GETDATE', '', true ),
+                default => new BasicExpression( 'CURRENT_DATE', '', false ) // MySQL, PostgreSQL, SQLite
             };
             return $e->toString( $sqlType );
         }
@@ -1252,13 +1238,13 @@ function date(): AliasableFunction {
 }
 
 
-function time(): AliasableFunction {
-    return new class extends AliasableFunction {
+function time(): AliasableExpression {
+    return new class extends AliasableExpression {
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
             $e = match ( $sqlType ) {
-                SQLType::ORACLE, SQLType::SQLSERVER => new Expression( 'CURRENT_TIMESTAMP', false ),
-                default => new Expression( 'CURRENT_TIME', false ) // MySQL, PostgreSQL, SQLite
+                SQLType::ORACLE, SQLType::SQLSERVER => new BasicExpression( 'CURRENT_TIMESTAMP', '', false ),
+                default => new BasicExpression( 'CURRENT_TIME', '', false ) // MySQL, PostgreSQL, SQLite
             };
             return $e->toString( $sqlType );
         }
@@ -1282,14 +1268,14 @@ enum Extract {
     case WEEK_DAY;
 }
 
-class ExtractFunction extends AliasableFunction {
+class ExtractFunction extends AliasableExpression {
 
-    protected string|ComparableContent|AliasableFunction $dateOrColumn;
+    protected string|ComparableContent|AliasableExpression $dateOrColumn;
 
     public function __construct( protected Extract $unit ) {}
 
 
-    public function from( string|ComparableContent|AliasableFunction $dateOrColumn ): ExtractFunction {
+    public function from( string|ComparableContent|AliasableExpression $dateOrColumn ): ExtractFunction {
         $this->dateOrColumn = $dateOrColumn;
         return $this;
     }
@@ -1318,7 +1304,7 @@ class ExtractFunction extends AliasableFunction {
 
         $date = __valueOrName( $this->dateOrColumn, $sqlType );
         return match ( $sqlType ) {
-            SQLType::SQLSERVER => ( new Expression( 'DATEPART', true, "$unit, $date" ) )->toString( $sqlType ),
+            SQLType::SQLSERVER => ( new BasicExpression( 'DATEPART', "$unit, $date", true ) )->toString( $sqlType ),
             SQLType::SQLITE => "strftime('%{$unit}', $date)",
             default => "EXTRACT($unit FROM $date)" // MySQL, PostgreSQL, Oracle
         };
@@ -1328,7 +1314,7 @@ class ExtractFunction extends AliasableFunction {
 
 function extract(
     Extract $unit,
-    string|ComparableContent|AliasableFunction $dateOrColumn = ''
+    string|ComparableContent|AliasableExpression $dateOrColumn = ''
 ): ExtractFunction {
     if ( is_string( $dateOrColumn ) && empty( $dateOrColumn ) ) {
         return ( new ExtractFunction( $unit ) )->from( val( '' ) );
@@ -1337,15 +1323,15 @@ function extract(
 }
 
 function diffInDays(
-    string|ComparableContent|AliasableFunction $startDate,
-    string|ComparableContent|AliasableFunction $endDate
-): AliasableFunction {
+    string|ComparableContent|AliasableExpression $startDate,
+    string|ComparableContent|AliasableExpression $endDate
+): AliasableExpression {
 
-    return new class ( $startDate, $endDate ) extends AliasableFunction {
+    return new class ( $startDate, $endDate ) extends AliasableExpression {
 
         public function __construct(
-            protected string|ComparableContent|AliasableFunction $startDate,
-            protected string|ComparableContent|AliasableFunction $endDate
+            protected string|ComparableContent|AliasableExpression $startDate,
+            protected string|ComparableContent|AliasableExpression $endDate
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
@@ -1361,15 +1347,15 @@ function diffInDays(
 }
 
 function addDays(
-    string|ComparableContent|AliasableFunction $dateOrColumn,
-    int|string|AliasableFunction $value
-): AliasableFunction {
+    string|ComparableContent|AliasableExpression $dateOrColumn,
+    int|string|AliasableExpression $value
+): AliasableExpression {
 
-    return new class ( $dateOrColumn, $value ) extends AliasableFunction {
+    return new class ( $dateOrColumn, $value ) extends AliasableExpression {
 
         public function __construct(
-            protected string|ComparableContent|AliasableFunction $dateOrColumn,
-            protected int|string|AliasableFunction $value
+            protected string|ComparableContent|AliasableExpression $dateOrColumn,
+            protected int|string|AliasableExpression $value
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
@@ -1383,15 +1369,15 @@ function addDays(
 }
 
 function subDays(
-    string|ComparableContent|AliasableFunction $dateOrColumn,
-    int|string|AliasableFunction $value
-): AliasableFunction {
+    string|ComparableContent|AliasableExpression $dateOrColumn,
+    int|string|AliasableExpression $value
+): AliasableExpression {
 
-    return new class ( $dateOrColumn, $value ) extends AliasableFunction {
+    return new class ( $dateOrColumn, $value ) extends AliasableExpression {
 
         public function __construct(
-            protected string|ComparableContent|AliasableFunction $dateOrColumn,
-            protected int|string|AliasableFunction $value
+            protected string|ComparableContent|AliasableExpression $dateOrColumn,
+            protected int|string|AliasableExpression $value
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
@@ -1405,16 +1391,16 @@ function subDays(
 }
 
 function dateAdd(
-    string|ComparableContent|AliasableFunction $dateOrColumn,
-    int|string|ComparableContent|AliasableFunction $value,
+    string|ComparableContent|AliasableExpression $dateOrColumn,
+    int|string|ComparableContent|AliasableExpression $value,
     string $unit = 'day'
-): AliasableFunction {
+): AliasableExpression {
 
-    return new class ( $dateOrColumn, $value, $unit ) extends AliasableFunction {
+    return new class ( $dateOrColumn, $value, $unit ) extends AliasableExpression {
 
         public function __construct(
-            protected string|ComparableContent|AliasableFunction $dateOrColumn,
-            protected int|string|ComparableContent|AliasableFunction $value,
+            protected string|ComparableContent|AliasableExpression $dateOrColumn,
+            protected int|string|ComparableContent|AliasableExpression $value,
             protected string $unit
             ) {}
 
@@ -1434,16 +1420,16 @@ function dateAdd(
 }
 
 function dateSub(
-    string|ComparableContent|AliasableFunction $dateOrColumn,
-    int|string|ComparableContent|AliasableFunction $value,
+    string|ComparableContent|AliasableExpression $dateOrColumn,
+    int|string|ComparableContent|AliasableExpression $value,
     string $unit = 'day'
-): AliasableFunction {
+): AliasableExpression {
 
-    return new class ( $dateOrColumn, $value, $unit ) extends AliasableFunction {
+    return new class ( $dateOrColumn, $value, $unit ) extends AliasableExpression {
 
         public function __construct(
-            protected string|ComparableContent|AliasableFunction $dateOrColumn,
-            protected int|string|ComparableContent|AliasableFunction $value,
+            protected string|ComparableContent|AliasableExpression $dateOrColumn,
+            protected int|string|ComparableContent|AliasableExpression $value,
             protected string $unit
             ) {}
 
@@ -1466,8 +1452,8 @@ function dateSub(
 // STRING FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function upper( string|ComparableContent $textOrColumn ): AliasableFunction {
-    return new class ( $textOrColumn ) extends AliasableFunction {
+function upper( string|ComparableContent $textOrColumn ): AliasableExpression {
+    return new class ( $textOrColumn ) extends AliasableExpression {
 
         public function __construct( protected string|ComparableContent $textOrColumn ) {}
 
@@ -1478,8 +1464,8 @@ function upper( string|ComparableContent $textOrColumn ): AliasableFunction {
     };
 }
 
-function lower( string|ComparableContent $textOrColumn ): AliasableFunction {
-    return new class ( $textOrColumn ) extends AliasableFunction {
+function lower( string|ComparableContent $textOrColumn ): AliasableExpression {
+    return new class ( $textOrColumn ) extends AliasableExpression {
 
         public function __construct( protected string|ComparableContent $textOrColumn ) {}
 
@@ -1494,9 +1480,9 @@ function substring(
     string|ComparableContent $textOrColumn,
     int|string $pos = 1,
     int $len = 0
-    ): AliasableFunction {
+    ): AliasableExpression {
 
-    return new class ( $textOrColumn, $pos, $len ) extends AliasableFunction {
+    return new class ( $textOrColumn, $pos, $len ) extends AliasableExpression {
 
         public function __construct(
             protected string|ComparableContent $textOrColumn,
@@ -1524,9 +1510,9 @@ function concat(
     string|ComparableContent $textOrColumn1,
     string|ComparableContent $textOrColumn2,
     string|ComparableContent ...$other
-    ): AliasableFunction {
+): AliasableExpression {
 
-    return new class (  $textOrColumn1, $textOrColumn2, ...$other ) extends AliasableFunction {
+    return new class (  $textOrColumn1, $textOrColumn2, ...$other ) extends AliasableExpression {
 
         /** @var string[]|\phputil\sql\ComparableContent[] */
         protected $other;
@@ -1562,8 +1548,8 @@ function concat(
 }
 
 
-function length( string|ComparableContent $textOrColumn ): AliasableFunction {
-    return new class ( $textOrColumn ) extends AliasableFunction {
+function length( string|ComparableContent $textOrColumn ): AliasableExpression {
+    return new class ( $textOrColumn ) extends AliasableExpression {
 
         public function __construct(
             protected string|ComparableContent $textOrColumn
@@ -1582,8 +1568,8 @@ function length( string|ComparableContent $textOrColumn ): AliasableFunction {
 }
 
 
-function bytes( string|ComparableContent $textOrColumn ): AliasableFunction {
-    return new class ( $textOrColumn ) extends AliasableFunction {
+function bytes( string|ComparableContent $textOrColumn ): AliasableExpression {
+    return new class ( $textOrColumn ) extends AliasableExpression {
 
         public function __construct(
             protected string|ComparableContent $textOrColumn
@@ -1610,8 +1596,8 @@ function bytes( string|ComparableContent $textOrColumn ): AliasableFunction {
 function ifNull(
     string|ComparableContent $valueOrColumm,
     string|int|float|bool|ComparableContent $valueOrColumnIfNull
-    ): AliasableFunction {
-    return new class ( $valueOrColumm, $valueOrColumnIfNull ) extends AliasableFunction {
+    ): AliasableExpression {
+    return new class ( $valueOrColumm, $valueOrColumnIfNull ) extends AliasableExpression {
 
         public function __construct(
             protected string|ComparableContent $valueOrColumm,
@@ -1634,34 +1620,40 @@ function ifNull(
 // MATHEMATICAL FUNCTIONS
 // ----------------------------------------------------------------------------
 
-function abs( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
-    return new BasicFunction( 'ABS', $valueOrColumn );
+function abs( int|float|string|ComparableContent|AliasableExpression $valueOrColumn ): AliasableExpression {
+    return new BasicExpression( 'ABS', $valueOrColumn, true );
 }
 
-function round( string|int|float|ComparableContent $valueOrColumn, ?int $decimals = null ): AliasableFunction {
-    return new class ( $valueOrColumn, $decimals ) extends AliasableFunction {
+function round(
+    int|float|string|ComparableContent|AliasableExpression $valueOrColumn,
+    ?int $decimals = null
+): AliasableExpression {
+
+    return new class ( $valueOrColumn, $decimals ) extends BasicExpression {
 
         public function __construct(
-            protected string|int|float|ComparableContent $valueOrColumn,
-            protected ?int $decimals = 2
-            ) {}
+            int|float|string|ComparableContent|AliasableExpression $valueOrColumn,
+            protected ?int $decimals = null
+        ) {
+            parent::__construct( 'ROUND', $valueOrColumn, true );
+        }
 
-        public function toString( SQLType $sqlType = SQLType::NONE ): string {
-            $valueOrColumn = __parseExpression( $this->valueOrColumn, $sqlType );
+        protected function getArgument( SQLType $sqlType ): string {
+            $arg = parent::getArgument( $sqlType );
             $decimals = $this->decimals;
-            $f = ( null === $decimals )
-                ? "ROUND($valueOrColumn)"
-                : "ROUND($valueOrColumn, $decimals)";
-            return $f . $this->makeAlias( $sqlType );
+            if ( $decimals === null ) {
+                return $arg;
+            }
+            return $arg . ', ' . $decimals;
         }
     };
 }
 
-function ceil( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
-    return new class ( $valueOrColumn ) extends AliasableFunction {
+function ceil( int|float|string|ComparableContent|AliasableExpression $valueOrColumn ): AliasableExpression {
+    return new class ( $valueOrColumn ) extends AliasableExpression {
 
         public function __construct(
-            protected string|int|float|ComparableContent $valueOrColumn
+            protected int|float|string|ComparableContent|AliasableExpression $valueOrColumn
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
@@ -1675,19 +1667,19 @@ function ceil( string|int|float|ComparableContent $valueOrColumn ): AliasableFun
     };
 }
 
-function floor( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
-    return new BasicFunction( 'FLOOR', $valueOrColumn );
+function floor( int|float|string|ComparableContent|AliasableExpression $valueOrColumn ): AliasableExpression {
+    return new BasicExpression( 'FLOOR', $valueOrColumn, true );
 }
 
 function power(
-    string|int|float|ComparableContent $base,
-    string|int|float|ComparableContent $exponent
-    ): AliasableFunction {
-    return new class ( $base, $exponent ) extends AliasableFunction {
+    int|float|string|ComparableContent|AliasableExpression $base,
+    int|float|string|ComparableContent|AliasableExpression $exponent
+): AliasableExpression {
+    return new class ( $base, $exponent ) extends AliasableExpression {
 
         public function __construct(
-            protected string|int|float|ComparableContent $base,
-            protected string|int|float|ComparableContent $exponent
+            protected int|float|string|ComparableContent|AliasableExpression $base,
+            protected int|float|string|ComparableContent|AliasableExpression $exponent
             ) {}
 
         public function toString( SQLType $sqlType = SQLType::NONE ): string {
@@ -1698,20 +1690,20 @@ function power(
     };
 }
 
-function sqrt( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
-    return new BasicFunction( 'SQRT', $valueOrColumn );
+function sqrt( int|float|string|ComparableContent|AliasableExpression $valueOrColumn ): AliasableExpression {
+    return new BasicExpression( 'SQRT', $valueOrColumn, true );
 }
 
-function sin( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
-    return new BasicFunction( 'SIN', $valueOrColumn );
+function sin( int|float|string|ComparableContent|AliasableExpression $valueOrColumn ): AliasableExpression {
+    return new BasicExpression( 'SIN', $valueOrColumn, true );
 }
 
-function cos( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
-    return new BasicFunction( 'COS', $valueOrColumn );
+function cos( int|float|string|ComparableContent|AliasableExpression $valueOrColumn ): AliasableExpression {
+    return new BasicExpression( 'COS', $valueOrColumn, true );
 }
 
-function tan( string|int|float|ComparableContent $valueOrColumn ): AliasableFunction {
-    return new BasicFunction( 'TAN', $valueOrColumn );
+function tan( int|float|string|ComparableContent|AliasableExpression $valueOrColumn ): AliasableExpression {
+    return new BasicExpression( 'TAN', $valueOrColumn, true );
 }
 
 // ----------------------------------------------------------------------------
@@ -1906,9 +1898,9 @@ class UpdateCommand implements DBStringable, Stringable {
             foreach( $this->attributions as $name => $valueOrColumn ) {
 
                 if ( $valueOrColumn instanceof ComparableContent ||
-                    $valueOrColumn instanceof Param ||
+                    $valueOrColumn instanceof CommandParam ||
                     $valueOrColumn instanceof AggregateFunction ||
-                    $valueOrColumn instanceof AliasableFunction
+                    $valueOrColumn instanceof AliasableExpression
                 ) {
                     $valueOrColumn = __toValue( $valueOrColumn, $sqlType );
                 } else {

@@ -72,10 +72,15 @@ describe( 'math functions', function() {
                 expect( $r )->toBe( 'ROUND(`a`, 2) AS `foo`' );
             } );
 
-            // it( 'accepts another function', function() {
-            //     $r = round( tan( 2 ), 2 )->toString( SQLType::MYSQL );
-            //     expect( $r )->toBe( 'ROUND(`a`, `b`)' );
-            // } );
+            it( 'accepts another function as value', function() {
+                $r = round( tan( 'a' ), 2 )->toString( SQLType::MYSQL );
+                expect( $r )->toBe( 'ROUND(TAN(`a`), 2)' );
+            } );
+
+            it( 'accepts chained functions', function() {
+                $r = round( cos( tan( 'a' ) ), 2 )->toString( SQLType::MYSQL );
+                expect( $r )->toBe( 'ROUND(COS(TAN(`a`)), 2)' );
+            } );
 
         } );
 
@@ -104,6 +109,11 @@ describe( 'math functions', function() {
             expect( $r )->toBe( 'CEIL(`a`) AS `foo`' );
         } );
 
+        it( 'accepts another function as value', function() {
+            $r = ceil( tan( 'a' ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'CEIL(TAN(`a`))' );
+        } );
+
     } );
 
 
@@ -129,6 +139,10 @@ describe( 'math functions', function() {
             expect( $r )->toBe( 'FLOOR(`a`) AS `foo`' );
         } );
 
+        it( 'accepts another function as value', function() {
+            $r = floor( tan( 'a' ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'FLOOR(TAN(`a`))' );
+        } );
     } );
 
 
@@ -154,6 +168,15 @@ describe( 'math functions', function() {
             expect( $r )->toBe( 'POWER(`a`, 2) AS `foo`' );
         } );
 
+        it( 'accepts a function as base', function() {
+            $r = power( tan( 'a' ), 2 )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'POWER(TAN(`a`), 2)' );
+        } );
+
+        it( 'accepts a function as exponent', function() {
+            $r = power( 2, floor( 2.3 ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'POWER(2, FLOOR(2.3))' );
+        } );
     } );
 
 
@@ -179,6 +202,10 @@ describe( 'math functions', function() {
             expect( $r )->toBe( 'SQRT(`a`) AS `foo`' );
         } );
 
+        it( 'accepts another function as value', function() {
+            $r = sqrt( floor( 2.3 ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'SQRT(FLOOR(2.3))' );
+        } );
     } );
 
 
@@ -202,6 +229,11 @@ describe( 'math functions', function() {
         it( 'can have an alias', function() {
             $r = sin( 'a' )->as( 'foo' )->toString( SQLType::MYSQL );
             expect( $r )->toBe( 'SIN(`a`) AS `foo`' );
+        } );
+
+        it( 'accepts another function as value', function() {
+            $r = sin( cos( 'a' ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'SIN(COS(`a`))' );
         } );
     } );
 
@@ -228,6 +260,10 @@ describe( 'math functions', function() {
             expect( $r )->toBe( 'COS(`a`) AS `foo`' );
         } );
 
+        it( 'accepts another function as value', function() {
+            $r = cos( sin( 'a' ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'COS(SIN(`a`))' );
+        } );
     } );
 
 
@@ -251,6 +287,11 @@ describe( 'math functions', function() {
         it( 'can have an alias', function() {
             $r = tan( 'a' )->as( 'foo' )->toString( SQLType::MYSQL );
             expect( $r )->toBe( 'TAN(`a`) AS `foo`' );
+        } );
+
+        it( 'accepts another function as value', function() {
+            $r = tan( cos( 'a' ) )->toString( SQLType::MYSQL );
+            expect( $r )->toBe( 'TAN(COS(`a`))' );
         } );
 
     } );
