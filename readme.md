@@ -4,14 +4,14 @@
 
 # phputil/sql
 
-> 🪄 Probably the best SQL query builder for PHP
+> 🔥 A portable, highly readable SQL query builder for PHP
 
 ⚠️ **Work-In-Progress!** ⚠️
 
 Features:
 - 🎯 **Cross-database SQL with the same API**: MySQL, PostgreSQL, SQLite, Oracle, and SQLServer.
 - 🚀 No database or external dependencies - not even [PDO](https://www.php.net/manual/en/book.pdo.php).
-- 🔥 Fluid, typed, SQL-like syntax.
+- 🔥 Fluent interface, typed, SQL-like syntax.
 - 🛟 Automatically quote columns and table names (e.g. backticks in MySQL).
 - 🪢 Support to complex queries.
 - 🛠️ Include utility functions for [aggregation](#aggregate-functions), [string](#string-functions), [date and time](#date-and-time-functions), [null](#null-handling-function), and [math](#math-functions).
