@@ -37,57 +37,41 @@ This library is particularly useful for:
 composer require phputil/sql
 ```
 
-Note: While a PHP library is in version `0.x` (pre-1.0), [Composer is not able to get updates automatically](https://getcomposer.org/doc/articles/versions.md#caret-version-range-) (via `composer update`), so it is necessary to install it again (with the command above) to get newer versions.
+**Note**: While any PHP library is in version `0.x` (pre-1.0), [Composer is not able to get updates automatically](https://getcomposer.org/doc/articles/versions.md#caret-version-range-) (via `composer update`), so it is necessary to install it again (with the command above) to get newer versions.
 
 
 ## Basic Usage
 
 ### Queries
 
-1️⃣ Use the function `select()` for creating a query. Then use the method `endAsString( SQLType $sqlType = SQLType::NONE ): string` for obtaining the SQL for a certain type.
-
+ℹ️ Use the function `select()` for creating a query and the method `end()` for finishing it.
 
 ```php
 require_once 'vendor/autoload.php';
 use phputil\sql\{SQLType};
 use function phputil\sql\{select};
 
-echo select()->from( 'example' )->endAsString();
-// SELECT * FROM example
+// end() returns a Select object
+$sql = select()->from( 'example' )->end();
 
-echo select( 'colum1', 'column2' )->from( 'example' )->endAsString();
-// SELECT column1, column2 FROM example
+// ... which is convertible to string
+echo $sql; // SELECT * FROM example
 
-echo select( 'colum1', 'column2' )->from( 'example' )->endAsString( SQLType::MYSQL );
-// SELECT `column1`, `column2` FROM `example`
+// ... and it's convertible to specific databases via toString()
+echo $sql->toString( SQLType::MYSQL );      // SELECT * FROM `example`
+echo $sql->toString( SQLType::SQLSERVER );  // SELECT * FROM [example]
 
-echo select( 'colum1', 'column2' )->from( 'example' )->endAsString( SQLType::SQLSERVER );
-// SELECT [column1], [column2] FROM [example]
-```
+// Converting a query to a database-specific string
+echo select()->from( 'example' )->end()->toString( SQLType::POSTGRESQL ); // SELECT * FROM "example"
+echo select()->from( 'example' )->endAsString( SQLType::POSTGRESQL ); // SELECT * FROM "example"
 
-2️⃣ By using the method `end()`, instead of `endAsString`, the desired database/SQL type is obtained from the static attribute `SQL::$type`:
+// 👉 Setting the default SQL/database type globally with SQL::useXXX methods.
+SQL::useSQLite();
 
-```php
-require_once 'vendor/autoload.php';
-use phputil\sql\{SQL, SQLType};
-use function phputil\sql\{select};
+echo $sql; // SELECT * FROM `example`
 
-// No specific SQL is set yet, so SQL::$type is SQLType::NONE
-
-echo select( 'colum1', 'column2' )->from( 'example' )->end();
-// SELECT column1, column2 FROM example
-
-// Let's set it to MySQL (SQLType::MYSQL)
-SQL::useMySQL();
-
-// Now the same query as above will be converted to MySQL
-echo select( 'colum1', 'column2' )->from( 'example' )->end();
-// SELECT `column1`, `column2` FROM `example`
-
-SQL::useSQLServer();
-
-echo select( 'colum1', 'column2' )->from( 'example' )->end();
-// SELECT [column1], [column2] FROM [example]
+// But you can still convert it into another database
+echo $sql->toString( SQLType::ORACLE ); // SELECT * FROM "example"
 ```
 
 🆒 Okay, let's build a more complex query.
@@ -128,9 +112,6 @@ echo $sql, PHP_EOL;
 // LIMIT 10
 // OFFSET 20
 
-
-// 👉 Since $sql holds an object,
-// you can still convert it to another database/SQL type using toString()
 echo $sql->toString( SQLType::ORACLE );
 
 // Now it generates:
@@ -165,24 +146,26 @@ if ( ! empty( $sku ) ) {
 }
 
 $pdo = new PDO( 'sqlite:example.db' );
-$pdoStatement = $pdo->prepare( $sql->end() );
+$pdoStatement = $pdo->prepare( $sql );
 $pdoStatement->execute( [ 'sku' => $sku ] ); // 👈 Value only here
 // ...
 ```
 
-➡️ See more examples in the [API section](#api).
+➡️ See more examples in the [API section](#api) or in the folder [examples](./examples/).
 
 
 ## Data manipulation
 
-ℹ️ Use `deleteFrom()` for creating a `DELETE` command. Example:
+ℹ️ Data manipulation functions do not require to use the `end()` method (it is optional).
+
+1️⃣ Use `deleteFrom()` for creating a `DELETE` command. Example:
 
 ```php
 $command = deleteFrom( 'user' )->where( col( 'id' )->equalTo( param() ) )->end();
 // DELETE FROM `user` WHERE `id` = ?
 ```
 
-ℹ️ Use `insertInto()` for creating an `INSERT` command. Examples:
+2️⃣ Use `insertInto()` for creating an `INSERT` command. Examples:
 
 ```php
 // Insert with field names and named parameters
@@ -213,7 +196,7 @@ $command = insertInto( 'user', [ 'name', 'username', 'password' ],
 // SELECT `name`, `nickname`, `ssn` FROM `customer`
 ```
 
-ℹ️ Use `update()` for creating an `UPDATE` command. Examples:
+3️⃣ Use `update()` for creating an `UPDATE` command. Examples:
 
 ```php
 // Update with anonymous parameter and function

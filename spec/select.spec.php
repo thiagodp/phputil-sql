@@ -73,12 +73,22 @@ describe( 'select', function() {
         expect( $r )->toBe( 'SELECT *' );
     } );
 
+    it( 'can also convert the entire query when using from', function() {
+        $r = (string) select()->from( 'foo' );
+        expect( $r )->toBe( 'SELECT * FROM foo' );
+    } );
+
 
     describe( 'selectDistict', function() {
 
         it( 'can select with mixed content', function() {
             $r = selectDistinct( 1, 'one', 'a.*', count('id')  )->toString();
             expect( $r )->toBe( 'SELECT DISTINCT 1, one, a.*, COUNT(id)' );
+        } );
+
+        it( 'is convertible to string', function() {
+            $r = (string) selectDistinct();
+            expect( $r )->toBe( 'SELECT DISTINCT *' );
         } );
 
     } );

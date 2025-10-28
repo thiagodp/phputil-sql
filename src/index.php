@@ -540,7 +540,7 @@ class TableData implements DBStringable {
 }
 
 
-class From implements DBStringable {
+class From implements DBStringable, Stringable {
 
     use CanLimit;
 
@@ -676,6 +676,10 @@ class From implements DBStringable {
 
     public function endAsString( SQLType $sqlType = SQLType::NONE ): string {
         return $this->end()->toString( $sqlType );
+    }
+
+    public function __toString(): string {
+        return (string) $this->end(); // Simulates the conversion of the entire query
     }
 
     public function toString( SQLType $sqlType = SQLType::NONE ): string {
