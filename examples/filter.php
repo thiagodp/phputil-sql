@@ -2,19 +2,24 @@
 // ----------------------------------------------------------------------------
 // filter.php
 //
-// This file is example on how to create queries with optional parameters.
+// This file is an example on how to create queries with optional parameters.
 //
 // You can execute this file from the CLI or from a Web Server:
-// a) CLI           : php filter.php
-// b) Web Server    : php -S localhost:8080
-//                    Then open the browser at localhost:8080
 //
-// The version for web servers allow the URL parameters:
-//  - "description" for products containing the give description;
+// a) CLI           : php filter.php
+//
+// b) Web Server    : php -S localhost:8080
+//                    Then open the browser at localhost:8080/filter.php
+//
+// When executing it from a web server, the following URL parameters are accepted:
+//  - "description" for products containing the given description;
 //  - "price" for max price; and
 //  - "_p" (that means "page") for pagination.
 //
-// The CLI version will ask for these parameters, that you can leave blank.
+//  Example: localhost:8080/filter.php?description=USB&price=100
+//
+// The CLI version will ask for these parameters. You can leave them blank if
+// you prefer.
 // ----------------------------------------------------------------------------
 
 require_once __DIR__ . '/../vendor/autoload.php';
