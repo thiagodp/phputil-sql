@@ -9,9 +9,9 @@
 ⚠️ **Work-In-Progress!** ⚠️
 
 Features:
-- 🎯 **Cross-database SQL with the same API**: MySQL, PostgreSQL, SQLite, Oracle, and SQLServer.
+- 🎯 **Cross-database SQL support with the same API**: MySQL, PostgreSQL, SQLite, Oracle, and SQLServer.
 - 🚀 No database or external dependencies - not even [PDO](https://www.php.net/manual/en/book.pdo.php).
-- 🔥 Fluent interface, typed, SQL-like syntax.
+- 🔥 Fluent interface, strongly typed, SQL-like syntax.
 - 🛟 Automatically quote columns and table names (e.g. backticks in MySQL).
 - 🪢 Support to complex queries.
 - 🛠️ Include utility functions for [aggregation](#aggregate-functions), [string](#string-functions), [date and time](#date-and-time-functions), [null](#null-handling-function), and [math](#math-functions).
@@ -23,10 +23,10 @@ See the [Roadmap](#roadmap)
 
 This library is particularly useful for:
 - Creating queries that can be used with different relational databases without the need of (bloated) ORM frameworks.
-  - Migration is usually achieved by changing a single line of code in your codebase!
+  - Migration is usually achieved by changing a single line of code in your codebase.
 - Writing readable, typo-free SQL statements.
 - Building complex WHERE clauses (e.g. for filtering content) without the need of concatenating strings.
-- Migrating data from different databases.
+- Migrating data from different relational databases.
 
 
 ## Install
@@ -37,7 +37,7 @@ This library is particularly useful for:
 composer require phputil/sql
 ```
 
-**Note**: While any PHP library is in version `0.x` (pre-1.0), [Composer is not able to get updates automatically](https://getcomposer.org/doc/articles/versions.md#caret-version-range-) (via `composer update`), so it is necessary to install it again (with the command above) to get newer versions.
+**Note**: Get updates via `composer require phputil/sql` since  [Composer is not able to get updates automatically](https://getcomposer.org/doc/articles/versions.md#caret-version-range-) via `composer update` for packages in version `0.x` (pre-1.0).
 
 
 ## Basic Usage
