@@ -13,6 +13,8 @@ require_once __BASE_DIR . 'delete.php';
 require_once __BASE_DIR . 'functions/aggregate.php';
 require_once __BASE_DIR . 'functions/basic.php';
 require_once __BASE_DIR . 'functions/datetime.php';
+require_once __BASE_DIR . 'functions/logical.php';
 require_once __BASE_DIR . 'functions/math.php';
 require_once __BASE_DIR . 'functions/null.php';
+require_once __BASE_DIR . 'functions/ordering.php';
 require_once __BASE_DIR . 'functions/string.php';

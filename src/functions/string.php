@@ -4,7 +4,7 @@ namespace phputil\sql;
 require_once __DIR__ . '/../internal.php';
 
 // ----------------------------------------------------------------------------
-// STRING FUNCTIONS
+// STRING HANDLING FUNCTIONS
 // ----------------------------------------------------------------------------
 
 function upper( string|ComparableContent|AliasableExpression $textOrColumn ): AliasableExpression {

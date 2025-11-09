@@ -4,7 +4,7 @@ namespace phputil\sql;
 require_once __DIR__ . '/../internal.php';
 
 // ----------------------------------------------------------------------------
-// DATE AND TIME FUNCTIONS
+// DATE AND TIME HANDLING FUNCTIONS
 // ----------------------------------------------------------------------------
 
 function now(): AliasableExpression {
